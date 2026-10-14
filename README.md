@@ -262,6 +262,17 @@ dsh:           { ..., heartbeat: false, ... },   // ← 只有它是 false
 - 打补丁改的是程序文件，**每次 Cherry Studio 升级后需要重新打一次**；
 - 若官方后续开放了这个运行时的创建入口，本工具即可功成身退。
 
+## 致谢
+
+这个工具是站在别人肩膀上做出来的：
+
+- **[Cherry Studio](https://github.com/CherryHQ/cherry-studio)** —— 宿主应用。本工具所做的一切，都建立在它**已经内置了 dsh 运行时**这个事实之上。
+- **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`，MIT）** —— 本工具存在的理由。它不是我们写的；我们只是把 Cherry Studio 里已经装好、却在界面上被藏起来的入口打开。
+- **[fractional-indexing](https://github.com/rocicorp/fractional-indexing)**（Rocicorp，MIT）—— Cherry Studio 用它生成 `order_key`。本工具逐行移植了这份实现，确保两边生成的键完全一致。
+- **[modernc.org/sqlite](https://gitlab.com/cznic/sqlite)**（BSD-3-Clause）—— 纯 Go 的 SQLite 实现，让本工具不需要 cgo 就能交叉编译。
+
+**特别说明**：以上项目与本工具**没有隶属或认可关系**。列在这里是为了说明技术来源，不构成任何关联的宣称。
+
 ## License
 
 本项目代码以 [MIT](LICENSE) 授权。
@@ -552,6 +563,17 @@ agents for anything important.
   Keep your own backups;
 - Patching modifies program files and **must be re-applied after every Cherry Studio update**;
 - If the vendor re-enables this runtime, this tool has served its purpose and can retire.
+
+## Acknowledgements
+
+This tool stands on other people's shoulders:
+
+- **[Cherry Studio](https://github.com/CherryHQ/cherry-studio)** — the host application. Everything this tool does rests on the fact that it **already ships the dsh runtime**.
+- **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`, MIT)** — the reason this tool exists. We did not write it; we only opened an entry point that was already installed inside Cherry Studio but hidden in the UI.
+- **[fractional-indexing](https://github.com/rocicorp/fractional-indexing)** (Rocicorp, MIT) — Cherry Studio uses it to generate `order_key`. We ported the implementation line by line so both sides produce identical keys.
+- **[modernc.org/sqlite](https://gitlab.com/cznic/sqlite)** (BSD-3-Clause) — the pure-Go SQLite implementation that lets this tool cross-compile without cgo.
+
+**Note**: none of the projects above are affiliated with or endorse this tool. They are listed to credit where the technology comes from, not to claim any association.
 
 ## License
 
