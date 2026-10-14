@@ -1,4 +1,4 @@
-# Cherry Agent Manager
+# Cherry Studio Unlock
 
 **解锁 Cherry Studio 隐藏的 Agent 运行时，并管理你已有的 Agent。**
 Unlock the agent runtimes Cherry Studio hides, and manage your agents.
@@ -49,23 +49,23 @@ var RUNTIMES = Object.keys(AGENT_RUNTIME_CAPABILITIES).filter((runtime) => runti
 
 | 平台 | 文件 |
 |---|---|
-| Windows | `cherry-agent-manager_windows_amd64.exe` |
-| macOS (Apple Silicon) | `cherry-agent-manager_darwin_arm64` |
-| macOS (Intel) | `cherry-agent-manager_darwin_amd64` |
-| Linux | `cherry-agent-manager_linux_amd64` |
+| Windows | `cherry-studio-unlock_windows_amd64.exe` |
+| macOS (Apple Silicon) | `cherry-studio-unlock_darwin_arm64` |
+| macOS (Intel) | `cherry-studio-unlock_darwin_amd64` |
+| Linux | `cherry-studio-unlock_linux_amd64` |
 
 无依赖，不需要装 Node、Python 或任何运行时。
 
 ### 命令行
 
 ```bash
-cherry-agent-manager                  # 自动探测环境并打开界面
-cherry-agent-manager --status         # 只打印自检结果
-cherry-agent-manager --lang en        # 以英文界面启动
-cherry-agent-manager --port 8765      # 指定端口
-cherry-agent-manager --no-open        # 不自动开浏览器
-cherry-agent-manager --data-dir DIR   # 手动指定数据目录
-cherry-agent-manager --asar FILE      # 手动指定 app.asar
+cherry-studio-unlock                  # 自动探测环境并打开界面
+cherry-studio-unlock --status         # 只打印自检结果
+cherry-studio-unlock --lang en        # 以英文界面启动
+cherry-studio-unlock --port 8765      # 指定端口
+cherry-studio-unlock --no-open        # 不自动开浏览器
+cherry-studio-unlock --data-dir DIR   # 手动指定数据目录
+cherry-studio-unlock --asar FILE      # 手动指定 app.asar
 ```
 
 ### 界面语言
@@ -81,7 +81,7 @@ cherry-agent-manager --asar FILE      # 手动指定 app.asar
 
 ```bash
 git clone <this repo>
-cd cherry-agent-manager
+cd cherry-studio-unlock
 make build        # 或：go build .
 make release      # 交叉编译五个平台到 dist/
 ```
@@ -114,7 +114,7 @@ make release      # 交叉编译五个平台到 dist/
 Cherry Studio 装在标准位置（如 `Program Files`）时工具能自动找到；装在自定义目录
 （如 `C:\app\AI\Cherry Studio`）时，工具按这个顺序找：
 
-1. 上次记住的路径（存在数据目录下的 `cherry-agent-manager.json`）
+1. 上次记住的路径（存在数据目录下的 `cherry-studio-unlock.json`）
 2. 正在运行的进程 —— **但写数据前你必须先退出 Cherry Studio，这条路就断了**
 3. Windows 注册表的卸载项
 4. 常见安装位置
@@ -154,7 +154,7 @@ Cherry Studio 装在标准位置（如 `Program Files`）时工具能自动找�
 这个工具会碰你的数据，所以设计上做了这些事：
 
 - **写前必备份。** 每次写操作前把 `cherrystudio.sqlite`（连同 `-wal`/`-shm`）复制到
-  `<数据目录>/backups-manual/cherry-agent-manager/`，并写一份 `manifest.json`。
+  `<数据目录>/backups-manual/cherry-studio-unlock/`，并写一份 `manifest.json`。
 - **撤销本身也可撤销。** 从备份恢复前，会先把当前状态再存一份，所以点错也能回头。
 - **等长替换。** 打补丁只把 `runtime !== "dsh"` 这 17 个字节换成 `true /*unlocked*/`——
   长度完全相同，因此不需要重写整个 288MB 的归档，也**不会改变文件大小**。
@@ -278,7 +278,7 @@ This tool opens that artificial block, and gives you an agent manager along the 
 > Every write is **backed up automatically** first, and most actions undo with one click.
 > Keep your own backups anyway.
 
-[中文](#cherry-agent-manager) ｜ **English**
+[中文](#cherry-studio-unlock) ｜ **English**
 
 ---
 
@@ -322,24 +322,24 @@ opens the UI automatically.
 
 | Platform | File |
 |---|---|
-| Windows | `cherry-agent-manager_windows_amd64.exe` |
-| macOS (Apple silicon) | `cherry-agent-manager_darwin_arm64` |
-| macOS (Intel) | `cherry-agent-manager_darwin_amd64` |
-| Linux (x86_64) | `cherry-agent-manager_linux_amd64` |
-| Linux (ARM64) | `cherry-agent-manager_linux_arm64` |
+| Windows | `cherry-studio-unlock_windows_amd64.exe` |
+| macOS (Apple silicon) | `cherry-studio-unlock_darwin_arm64` |
+| macOS (Intel) | `cherry-studio-unlock_darwin_amd64` |
+| Linux (x86_64) | `cherry-studio-unlock_linux_amd64` |
+| Linux (ARM64) | `cherry-studio-unlock_linux_arm64` |
 
 No dependencies — no Node, no Python, no runtime to install.
 
 ### Command line
 
 ```bash
-cherry-agent-manager                  # detect the environment and open the UI
-cherry-agent-manager --status         # print the self-check and exit
-cherry-agent-manager --lang en        # start with the English UI
-cherry-agent-manager --port 8765      # pick a port
-cherry-agent-manager --no-open        # do not open a browser
-cherry-agent-manager --data-dir DIR   # set the data directory manually
-cherry-agent-manager --asar FILE      # set app.asar manually
+cherry-studio-unlock                  # detect the environment and open the UI
+cherry-studio-unlock --status         # print the self-check and exit
+cherry-studio-unlock --lang en        # start with the English UI
+cherry-studio-unlock --port 8765      # pick a port
+cherry-studio-unlock --no-open        # do not open a browser
+cherry-studio-unlock --data-dir DIR   # set the data directory manually
+cherry-studio-unlock --asar FILE      # set app.asar manually
 ```
 
 ### Interface language
@@ -355,7 +355,7 @@ The CLI supports it too: `--lang zh|en`. When omitted the order is
 
 ```bash
 git clone <this repo>
-cd cherry-agent-manager
+cd cherry-studio-unlock
 make build        # or: go build .
 make release      # cross-compile all five platforms into dist/
 ```
@@ -389,7 +389,7 @@ Want to go back? Click **Revert patch**, or restore any backup with one click.
 If Cherry Studio is installed in the standard location (e.g. `Program Files`) the tool finds
 it automatically. Otherwise it tries, in order:
 
-1. The path remembered from last time (`cherry-agent-manager.json` in the data directory)
+1. The path remembered from last time (`cherry-studio-unlock.json` in the data directory)
 2. A running process — **but you must quit Cherry Studio before writing, so this line goes dead**
 3. The Windows registry uninstall entry
 4. Common install locations
@@ -429,7 +429,7 @@ menu shortcut → Open file location.
 This tool touches your data, so:
 
 - **Backup before every write.** `cherrystudio.sqlite` (with `-wal`/`-shm`) is copied to
-  `<data dir>/backups-manual/cherry-agent-manager/` along with a `manifest.json`.
+  `<data dir>/backups-manual/cherry-studio-unlock/` along with a `manifest.json`.
 - **Undo is itself undoable.** Before restoring a backup, the current state is saved too.
 - **Equal-length replacement.** The patch swaps the 17 bytes of `runtime !== "dsh"` for
   `true /*unlocked*/` — exactly the same length. That means no need to rewrite the whole

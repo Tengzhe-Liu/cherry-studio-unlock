@@ -1,4 +1,4 @@
-module github.com/cherry-tools/cherry-agent-manager
+module github.com/Tengzhe-Liu/cherry-studio-unlock
 
 go 1.27.2
 

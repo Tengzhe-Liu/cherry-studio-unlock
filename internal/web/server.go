@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
-	"github.com/cherry-tools/cherry-agent-manager/internal/patch"
-	"github.com/cherry-tools/cherry-agent-manager/internal/service"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/cherry"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/patch"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/service"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 //go:embed assets

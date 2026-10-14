@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 // backupRootName 是备份目录名。放在用户数据目录下，卸载 Cherry Studio 时不会被误删，
@@ -42,7 +42,7 @@ type BackupEntry struct {
 
 // BackupRoot 返回某个数据目录下的备份根目录。
 func BackupRoot(dataDir string) string {
-	return filepath.Join(dataDir, backupRootName, "cherry-agent-manager")
+	return filepath.Join(dataDir, backupRootName, "cherry-studio-unlock")
 }
 
 // CreateBackup 把给定文件复制到备份目录，并写入 manifest。

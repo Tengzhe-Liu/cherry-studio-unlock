@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
-	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
-	"github.com/cherry-tools/cherry-agent-manager/internal/patch"
-	"github.com/cherry-tools/cherry-agent-manager/internal/store"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/asar"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/cherry"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/patch"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/store"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 // ErrRunning 表示 Cherry Studio 正在运行，写操作被拒绝。

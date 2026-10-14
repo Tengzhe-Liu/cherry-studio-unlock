@@ -1,6 +1,6 @@
 # START HERE · 从这里开始
 
-**Cherry Agent Manager v0.1.0** — source code + prebuilt binaries + docs.
+**Cherry Studio Unlock v0.1.0** — source code + prebuilt binaries + docs.
 完整发布包：源码 + 预编译程序 + 文档。
 
 **中文** ｜ [English](#english)
@@ -12,7 +12,7 @@
 ## 包里有什么
 
 ```
-cherry-agent-manager-v0.1.0/
+cherry-studio-unlock-v0.1.0/
 ├── START-HERE.md          ← 你正在看的这一份
 ├── dist/                  ← 五个平台的预编译程序（无需安装任何东西）
 ├── README.md              ← 项目说明：问题背景、原理、安全设计、排障
@@ -47,11 +47,11 @@ cherry-agent-manager-v0.1.0/
 
 | 你的系统 | 选这个文件 |
 |---|---|
-| **Windows**（绝大多数电脑） | `cherry-agent-manager_windows_amd64.exe` |
-| **macOS** · Apple 芯片（M1/M2/M3/M4） | `cherry-agent-manager_darwin_arm64` |
-| **macOS** · Intel 芯片 | `cherry-agent-manager_darwin_amd64` |
-| **Linux** · x86_64 | `cherry-agent-manager_linux_amd64` |
-| **Linux** · ARM64 | `cherry-agent-manager_linux_arm64` |
+| **Windows**（绝大多数电脑） | `cherry-studio-unlock_windows_amd64.exe` |
+| **macOS** · Apple 芯片（M1/M2/M3/M4） | `cherry-studio-unlock_darwin_arm64` |
+| **macOS** · Intel 芯片 | `cherry-studio-unlock_darwin_amd64` |
+| **Linux** · x86_64 | `cherry-studio-unlock_linux_amd64` |
+| **Linux** · ARM64 | `cherry-studio-unlock_linux_arm64` |
 
 不确定自己的 Mac 是哪种芯片？屏幕左上角  → 「关于本机」，看「芯片」一栏。
 
@@ -59,10 +59,10 @@ cherry-agent-manager-v0.1.0/
 
 ```bash
 cd 解压后的目录/dist
-chmod +x cherry-agent-manager_darwin_arm64     # 换成你选的那个文件名
+chmod +x cherry-studio-unlock_darwin_arm64     # 换成你选的那个文件名
 
 # macOS 上如果提示「无法验证开发者」，再补一句：
-xattr -d com.apple.quarantine cherry-agent-manager_darwin_arm64
+xattr -d com.apple.quarantine cherry-studio-unlock_darwin_arm64
 ```
 
 Windows 用户不需要这一步，直接双击即可。
@@ -143,7 +143,7 @@ Windows 用户不需要这一步，直接双击即可。
 ## What's in this package
 
 ```
-cherry-agent-manager-v0.1.0/
+cherry-studio-unlock-v0.1.0/
 ├── START-HERE.md          ← the file you are reading
 ├── dist/                  ← prebuilt binaries for five platforms (nothing to install)
 ├── README.md              ← project overview: the problem, how it works, safety, troubleshooting
@@ -179,11 +179,11 @@ Go into `dist` and take **only** the one that matches your OS:
 
 | Your system | Pick this file |
 |---|---|
-| **Windows** (most PCs) | `cherry-agent-manager_windows_amd64.exe` |
-| **macOS** · Apple silicon (M1/M2/M3/M4) | `cherry-agent-manager_darwin_arm64` |
-| **macOS** · Intel | `cherry-agent-manager_darwin_amd64` |
-| **Linux** · x86_64 | `cherry-agent-manager_linux_amd64` |
-| **Linux** · ARM64 | `cherry-agent-manager_linux_arm64` |
+| **Windows** (most PCs) | `cherry-studio-unlock_windows_amd64.exe` |
+| **macOS** · Apple silicon (M1/M2/M3/M4) | `cherry-studio-unlock_darwin_arm64` |
+| **macOS** · Intel | `cherry-studio-unlock_darwin_amd64` |
+| **Linux** · x86_64 | `cherry-studio-unlock_linux_amd64` |
+| **Linux** · ARM64 | `cherry-studio-unlock_linux_arm64` |
 
 Not sure which chip your Mac has? Apple menu  → "About This Mac" → look at "Chip".
 
@@ -191,10 +191,10 @@ Not sure which chip your Mac has? Apple menu  → "About This Mac" → look at "
 
 ```bash
 cd path-to-unzipped/dist
-chmod +x cherry-agent-manager_darwin_arm64     # substitute your chosen file name
+chmod +x cherry-studio-unlock_darwin_arm64     # substitute your chosen file name
 
 # On macOS, if you get "cannot verify the developer", also run:
-xattr -d com.apple.quarantine cherry-agent-manager_darwin_arm64
+xattr -d com.apple.quarantine cherry-studio-unlock_darwin_arm64
 ```
 
 Windows users can skip all of that — just double-click.

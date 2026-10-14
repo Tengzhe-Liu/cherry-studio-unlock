@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 // headerPickleSize 是头部 pickle 之前的固定 8 字节（两个 uint32）。

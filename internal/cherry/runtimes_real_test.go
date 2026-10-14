@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/asar"
 )
 
 // TestScanRealArchive 对真实 app.asar 跑扫描，验证能自动识别出被隐藏的运行时。

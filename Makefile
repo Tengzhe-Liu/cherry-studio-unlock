@@ -1,4 +1,4 @@
-BINARY := cherry-agent-manager
+BINARY := cherry-studio-unlock
 DIST   := dist
 # 去掉符号表与调试信息；-trimpath 让构建可复现
 LDFLAGS := -s -w

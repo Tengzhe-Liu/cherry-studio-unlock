@@ -12,7 +12,7 @@ import (
 
 	_ "modernc.org/sqlite" // 纯 Go 实现，不需要 cgo
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 // DB 是一个已打开的 Cherry Studio 数据库。

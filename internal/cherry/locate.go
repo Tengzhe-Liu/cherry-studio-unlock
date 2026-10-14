@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/asar"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 // Install 描述一份本机 Cherry Studio 安装。

@@ -1,14 +1,14 @@
-// Cherry Agent Manager —— 解锁并管理 Cherry Studio 的 Agent 运行时。
+// Cherry Studio Unlock —— 解锁并管理 Cherry Studio 的 Agent 运行时。
 //
 // 用法：
 //
-//	cherry-agent-manager                 自动探测环境并打开界面
-//	cherry-agent-manager --status        只在终端打印自检结果后退出
-//	cherry-agent-manager --lang en       以英文界面启动
-//	cherry-agent-manager --port 8765     指定端口
-//	cherry-agent-manager --no-open       不自动打开浏览器
-//	cherry-agent-manager --data-dir DIR  手动指定 Cherry Studio 数据目录
-//	cherry-agent-manager --asar FILE     手动指定 app.asar
+//	cherry-studio-unlock                 自动探测环境并打开界面
+//	cherry-studio-unlock --status        只在终端打印自检结果后退出
+//	cherry-studio-unlock --lang en       以英文界面启动
+//	cherry-studio-unlock --port 8765     指定端口
+//	cherry-studio-unlock --no-open       不自动打开浏览器
+//	cherry-studio-unlock --data-dir DIR  手动指定 Cherry Studio 数据目录
+//	cherry-studio-unlock --asar FILE     手动指定 app.asar
 package main
 
 import (
@@ -19,10 +19,10 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
-	"github.com/cherry-tools/cherry-agent-manager/internal/service"
-	"github.com/cherry-tools/cherry-agent-manager/internal/web"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/cherry"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/service"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/web"
 )
 
 func main() {
@@ -113,7 +113,7 @@ func run(dataDir, asarPath string, port int, noOpen, statusOnly bool, lang i18n.
 	}
 
 	fmt.Println()
-	fmt.Println("  Cherry Agent Manager")
+	fmt.Println("  Cherry Studio Unlock")
 	fmt.Println("  ─────────────────────────────────────────────")
 	fmt.Print(indent(web.StatusText(svc), "  "))
 	fmt.Println()

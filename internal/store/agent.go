@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 // Agent 是 agent 表里的一行。Configuration 用 map 保存，

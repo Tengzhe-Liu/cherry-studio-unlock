@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/asar"
 )
 
 // 这些标记串来自 Cherry Studio 主进程与渲染进程的打包产物。

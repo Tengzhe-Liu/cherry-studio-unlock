@@ -22,10 +22,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
-	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/asar"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/cherry"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 // markerToken 是替换文本里用来表明「此处由本工具解锁」的标记。

@@ -5,12 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 )
 
 // configFileName 是工具自己的配置文件，放在 Cherry Studio 数据目录下。
 // 只存"上次确认可用的 app.asar 路径"这类信息，不碰 Cherry Studio 自己的任何配置。
-const configFileName = "cherry-agent-manager.json"
+const configFileName = "cherry-studio-unlock.json"
 
 // Config 是工具的持久化配置。
 type Config struct {

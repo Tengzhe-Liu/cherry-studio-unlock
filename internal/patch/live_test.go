@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/i18n"
 
-	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
-	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/asar"
+	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/cherry"
 )
 
 func fileHash(t *testing.T, p string) string {

@@ -43,7 +43,7 @@ func Detect() Lang {
 // ——这样漏翻会当场暴露，而不是静默显示空白。
 var messages = map[string]map[Lang]string{
 	// ---------- 命令行 / 自检 ----------
-	"cli.title":         {Zh: "Cherry Agent Manager", En: "Cherry Agent Manager"},
+	"cli.title":         {Zh: "Cherry Studio Unlock", En: "Cherry Studio Unlock"},
 	"cli.dataDir":       {Zh: "Cherry Studio 数据目录 : %s", En: "Cherry Studio data dir  : %s"},
 	"cli.version":       {Zh: "程序版本               : %s", En: "App version            : %s"},
 	"cli.asar":          {Zh: "app.asar               : %s", En: "app.asar               : %s"},

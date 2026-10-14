@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cherry Agent Manager</title>
+<title>Cherry Studio Unlock</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
@@ -78,7 +78,7 @@
 <body>
 <header>
   <div>
-    <h1>Cherry Agent Manager</h1>
+    <h1>Cherry Studio Unlock</h1>
     <div class="sub" data-i18n="app.subtitle"></div>
   </div>
   <div class="langbtn" role="group" aria-label="Language">
@@ -280,7 +280,7 @@ function applyStaticI18n() {
   document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.getElementById("langZh").setAttribute("aria-pressed", String(LANG === "zh"));
   document.getElementById("langEn").setAttribute("aria-pressed", String(LANG === "en"));
-  document.title = "Cherry Agent Manager";
+  document.title = "Cherry Studio Unlock";
 }
 
 // 切换语言：本地立即生效，同时告诉后端，让后端返回的文案（错误、状态判定）也切过去
