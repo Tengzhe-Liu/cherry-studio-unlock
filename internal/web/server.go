@@ -63,7 +63,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/patch/apply", s.wrap(s.patchApply))
 	mux.HandleFunc("POST /api/patch/revert", s.wrap(s.patchRevert))
 
-	return mux
+	// 套上 Host / Origin 校验，见 guard.go
+	return guard(mux)
 }
 
 // apiError 是统一的错误响应。
@@ -233,7 +234,7 @@ func (s *Server) Serve(port int) (string, error) {
 }
 
 // StatusText 给终端输出一段人类可读的自检摘要，按当前语言渲染。
-func StatusText(svc *service.Service) string {
+func StatusText(svc *service.Service, version string) string {
 	lang := svc.Lang()
 	st, err := svc.Status()
 	if err != nil {
@@ -241,6 +242,7 @@ func StatusText(svc *service.Service) string {
 	}
 	var b strings.Builder
 	ins := st.Install
+	fmt.Fprintln(&b, i18n.T(lang, "cli.toolVersion", version))
 	fmt.Fprintln(&b, i18n.T(lang, "cli.dataDir", ins.DataDir))
 	if ins.Version != "" {
 		fmt.Fprintln(&b, i18n.T(lang, "cli.version", ins.Version))

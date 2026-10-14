@@ -25,6 +25,10 @@ import (
 	"github.com/Tengzhe-Liu/cherry-studio-unlock/internal/web"
 )
 
+// version 是本工具的版本号，会显示在 --status 输出里——
+// 用户报 issue 时能直接说清自己跑的是哪一版。
+const version = "0.1.1"
+
 func main() {
 	var (
 		dataDir    = flag.String("data-dir", "", "手动指定数据目录 / data directory")
@@ -102,7 +106,7 @@ func run(dataDir, asarPath string, port int, noOpen, statusOnly bool, lang i18n.
 
 	if statusOnly {
 		fmt.Println()
-		fmt.Print(web.StatusText(svc))
+		fmt.Print(web.StatusText(svc, version))
 		return nil
 	}
 
@@ -113,9 +117,9 @@ func run(dataDir, asarPath string, port int, noOpen, statusOnly bool, lang i18n.
 	}
 
 	fmt.Println()
-	fmt.Println("  Cherry Studio Unlock")
+	fmt.Println("  Cherry Studio Unlock v" + version)
 	fmt.Println("  ─────────────────────────────────────────────")
-	fmt.Print(indent(web.StatusText(svc), "  "))
+	fmt.Print(indent(web.StatusText(svc, version), "  "))
 	fmt.Println()
 	fmt.Println("  " + i18n.T(lang, "cli.uiAt", addr))
 	fmt.Println("  " + i18n.T(lang, "cli.quit"))

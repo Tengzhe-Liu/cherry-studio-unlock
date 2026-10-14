@@ -164,7 +164,11 @@ Cherry Studio 装在标准位置（如 `Program Files`）时工具能自动找�
 - **拒绝往不认识的库里写。** 打开数据库时先校验 `agent` 表的列是否齐全；
   对不上就明确报错，绝不将错就错地塞数据。
 - **拒绝创建跑不起来的 Agent。** 写入前会扫描 `app.asar`，确认目标运行时确实被实现了。
-- **本地回环 + 只读 UI。** 服务只监听 `127.0.0.1`，不对外网暴露。
+- **本地回环。** 服务只监听 `127.0.0.1`，同网段和外网都碰不到。
+- **校验 Host 与 Origin。** 只监听回环还不够：恶意网页可以用不触发 CORS 预检的
+  「简单请求」向 `127.0.0.1:端口` 发 POST，虽然读不到响应，但删除 Agent、打补丁这些
+  副作用已经发生了。所以改数据的请求会校验 `Origin` 必须同源，`Host` 必须指向本机
+  （后者同时挡住 DNS rebinding）。
 
 ---
 
@@ -441,7 +445,12 @@ This tool touches your data, so:
   a mismatch is a hard error, never a half-blind insert.
 - **Refuses to create agents that cannot run.** It scans `app.asar` before writing to confirm
   the target runtime is actually implemented.
-- **Loopback only.** The server listens on `127.0.0.1` and is never exposed externally.
+- **Loopback only.** The server listens on `127.0.0.1`; other machines cannot reach it.
+- **Host and Origin checks.** Loopback alone is not enough: a malicious web page can send a
+  POST to `127.0.0.1:port` using a CORS-*simple* request. It cannot read the response, but the
+  side effect — deleting an agent, applying the patch — already happened. So mutating requests
+  must have a same-origin `Origin`, and `Host` must point at this machine (which also blocks
+  DNS rebinding).
 
 ---
 

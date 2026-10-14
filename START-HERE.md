@@ -1,6 +1,6 @@
 # START HERE · 从这里开始
 
-**Cherry Studio Unlock v0.1.0** — source code + prebuilt binaries + docs.
+**Cherry Studio Unlock v0.1.1** — source code + prebuilt binaries + docs.
 完整发布包：源码 + 预编译程序 + 文档。
 
 **中文** ｜ [English](#english)
@@ -12,7 +12,7 @@
 ## 包里有什么
 
 ```
-cherry-studio-unlock-v0.1.0/
+cherry-studio-unlock-v0.1.1/
 ├── START-HERE.md          ← 你正在看的这一份
 ├── dist/                  ← 五个平台的预编译程序（无需安装任何东西）
 ├── README.md              ← 项目说明：问题背景、原理、安全设计、排障
@@ -65,7 +65,9 @@ chmod +x cherry-studio-unlock_darwin_arm64     # 换成你选的那个文件名
 xattr -d com.apple.quarantine cherry-studio-unlock_darwin_arm64
 ```
 
-Windows 用户不需要这一步，直接双击即可。
+**Windows 用户注意**：直接双击即可，不需要上面那步。但首次运行会弹 **SmartScreen**
+「Windows 已保护你的电脑 / 未知发布者」——因为程序没有代码签名。点「**更多信息**」→
+「**仍要运行**」即可。这是所有未签名开源程序的通病，不是它有问题。
 
 ### 第 4 步 · 运行它
 
@@ -143,7 +145,7 @@ Windows 用户不需要这一步，直接双击即可。
 ## What's in this package
 
 ```
-cherry-studio-unlock-v0.1.0/
+cherry-studio-unlock-v0.1.1/
 ├── START-HERE.md          ← the file you are reading
 ├── dist/                  ← prebuilt binaries for five platforms (nothing to install)
 ├── README.md              ← project overview: the problem, how it works, safety, troubleshooting
@@ -197,7 +199,9 @@ chmod +x cherry-studio-unlock_darwin_arm64     # substitute your chosen file nam
 xattr -d com.apple.quarantine cherry-studio-unlock_darwin_arm64
 ```
 
-Windows users can skip all of that — just double-click.
+**Windows users**: just double-click, no chmod needed. On first run SmartScreen will warn
+about an "unknown publisher" — the binaries are not code-signed. Click **More info** →
+**Run anyway**. Every unsigned open-source program does this; it does not mean anything is wrong.
 
 ### Step 4 · Run it
 

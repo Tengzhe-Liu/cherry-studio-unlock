@@ -44,6 +44,7 @@ func Detect() Lang {
 var messages = map[string]map[Lang]string{
 	// ---------- 命令行 / 自检 ----------
 	"cli.title":         {Zh: "Cherry Studio Unlock", En: "Cherry Studio Unlock"},
+	"cli.toolVersion":   {Zh: "本工具版本             : v%s", En: "Tool version           : v%s"},
 	"cli.dataDir":       {Zh: "Cherry Studio 数据目录 : %s", En: "Cherry Studio data dir  : %s"},
 	"cli.version":       {Zh: "程序版本               : %s", En: "App version            : %s"},
 	"cli.asar":          {Zh: "app.asar               : %s", En: "app.asar               : %s"},
