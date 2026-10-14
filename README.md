@@ -220,11 +220,35 @@ CHERRY_DB=/path/to/cherrystudio.sqlite go test ./... -run CRUD -v
 
 ## 免责声明
 
-本项目与 Cherry Studio 官方无关，未经其授权或认可。
-它修改的是**你自己机器上、你自己的数据**，目的是让你用上 App 已经内置的功能。
-请自行评估风险并保留备份。如果 Cherry Studio 官方后续开放了这个运行时的创建入口，
-这个工具就可以功成身退了。
+本项目与 Cherry Studio 官方**无关**，未获其授权或认可，也不代表其立场。
+项目名与文档中出现的 "Cherry Studio" 仅用于说明兼容对象，不构成任何官方关联的暗示。
+本项目**不包含也不分发** Cherry Studio 的任何代码或二进制。
+
+### 为什么官方要隐藏 dsh？——我们不知道，也不猜
+
+工具只描述**可观察到的现象**（`app.asar` 里那行 `.filter((runtime) => runtime !== "dsh")`），
+不替官方解释动机。有一个值得注意的技术细节：
+
+```js
+"claude-code": { ..., heartbeat: true,  ... },
+pi:            { ..., heartbeat: true,  ... },
+dsh:           { ..., heartbeat: false, ... },   // ← 只有它是 false
+```
+
+`heartbeat` 为 `false` 意味着该运行时不被支持用于定时任务（心跳）。
+这**可能**说明 dsh 在那个版本里还不够完备——但这是推测，不是结论。
+
+**本工具不会改变这一点。** 它只是把创建入口打开，运行时的成熟度仍取决于官方实现。
+是否要在重要场景里使用 dsh Agent，请自行判断。
+
+### 风险
+
+- 修改的是**你自己机器上、你自己的数据**；
+- 所有写操作前都会自动备份，且大部分可撤销——但**没有任何担保**，请仍然自行保留备份；
+- 打补丁改的是程序文件，**每次 Cherry Studio 升级后需要重新打一次**；
+- 若官方后续开放了这个运行时的创建入口，本工具即可功成身退。
 
 ## License
 
-MIT
+本项目代码以 [MIT](LICENSE) 授权。
+第三方组件的许可与出处见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
