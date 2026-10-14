@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,22 +81,64 @@ func (s *Service) scanLocked(force bool) (*cherry.ScanResult, error) {
 	if !force && s.scanCache != nil && time.Since(s.scanCachedAt) < scanTTL {
 		return s.scanCache, nil
 	}
-	if s.install.AsarPath == "" {
-		return nil, fmt.Errorf("没有找到 app.asar，无法扫描运行时")
-	}
-	a, err := asar.Open(s.install.AsarPath)
-	if err != nil {
-		return nil, err
-	}
-	defer a.Close()
-
-	res, err := cherry.ScanRuntimes(a)
+	res, err := scanAsarPath(s.install.AsarPath)
 	if err != nil {
 		return nil, err
 	}
 	s.scanCache = res
 	s.scanCachedAt = time.Now()
 	return res, nil
+}
+
+// scanAsarPath 扫描任意一个 app.asar。独立成函数，方便在改路径前先试扫一遍。
+func scanAsarPath(path string) (*cherry.ScanResult, error) {
+	if path == "" {
+		return nil, fmt.Errorf("没有找到 app.asar。请先在本工具里指定它的路径" +
+			"（通常在 <Cherry Studio 安装目录>/resources/app.asar）")
+	}
+	a, err := asar.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("无法读取 %s：%w", path, err)
+	}
+	defer a.Close()
+	return cherry.ScanRuntimes(a)
+}
+
+// SetAsarPath 手动指定 app.asar。会先试扫一遍确认有效，再保存——
+// 免得保存了一个错路径，下次启动依然不可用。
+func (s *Service) SetAsarPath(path string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return fmt.Errorf("路径不能为空")
+	}
+	if st, err := os.Stat(path); err != nil || st.IsDir() {
+		return fmt.Errorf("找不到文件：%s", path)
+	}
+
+	res, err := scanAsarPath(path)
+	if err != nil {
+		return fmt.Errorf("这个文件打不开或不是有效的 app.asar：%w", err)
+	}
+	if len(res.Runtimes) == 0 {
+		return fmt.Errorf("能打开 %s，但没从中认出任何 Agent 运行时——它可能不是 Cherry Studio 的 app.asar", path)
+	}
+
+	s.mu.Lock()
+	s.install.AsarPath = path
+	s.install.AppRoot, s.install.Version = cherry.DescribeAsar(path)
+	s.scanCache = res
+	s.scanCachedAt = time.Now()
+	// 路径一旦确认可用，就把"未找到 app.asar"的旧警告清掉
+	kept := s.install.Warnings[:0]
+	for _, w := range s.install.Warnings {
+		if !strings.Contains(w, "app.asar") {
+			kept = append(kept, w)
+		}
+	}
+	s.install.Warnings = kept
+	s.mu.Unlock()
+
+	return cherry.RememberAsarPath(s.install.DataDir, path)
 }
 
 // Status 是界面首页需要的全部信息。
@@ -174,6 +217,9 @@ type AgentInput struct {
 	Avatar          string `json:"avatar"`
 	PermissionMode  string `json:"permissionMode"`
 	ReasoningEffort string `json:"reasoningEffort"`
+	// SkipRuntimeCheck 允许在扫不到 app.asar 时跳过"运行时是否真的内置"的校验。
+	// 必须由用户在界面上明确勾选，默认关闭——这道校验是防止创建跑不起来的 Agent 的。
+	SkipRuntimeCheck bool `json:"skipRuntimeCheck"`
 }
 
 // permissionModes 与 Cherry Studio 的权限模式一致。
@@ -206,7 +252,7 @@ func (s *Service) CreateAgent(in AgentInput) (*store.Agent, error) {
 	if err := s.requireClosed(); err != nil {
 		return nil, err
 	}
-	if err := s.assertRuntimeUsable(in.Type); err != nil {
+	if err := s.assertRuntimeUsable(in.Type, in.SkipRuntimeCheck); err != nil {
 		return nil, err
 	}
 	if err := validatePermissionMode(in.Type, in.PermissionMode); err != nil {
@@ -242,13 +288,18 @@ func (s *Service) CreateAgent(in AgentInput) (*store.Agent, error) {
 
 // assertRuntimeUsable 确认目标运行时确实内置在当前版本里。
 // 这是本工具最重要的一道校验：宁可拒绝，也不要创建一个永远跑不起来的 Agent。
-func (s *Service) assertRuntimeUsable(runtimeType string) error {
+func (s *Service) assertRuntimeUsable(runtimeType string, allowUnverified bool) error {
 	if runtimeType == "" {
 		return fmt.Errorf("必须指定运行时类型")
 	}
 	res, err := s.Scan(false)
 	if err != nil {
-		return fmt.Errorf("无法扫描运行时（%v）。若只要创建 Agent，可在界面上跳过扫描。", err)
+		if allowUnverified {
+			return nil // 用户已明确选择跳过校验
+		}
+		return fmt.Errorf("无法确认运行时是否真的内置：%v\n"+
+			"可以先在本工具的「环境」一栏指定 app.asar 的路径（通常在 "+
+			"<Cherry Studio 安装目录>/resources/app.asar）再重试。", err)
 	}
 	info, ok := res.FindRuntime(runtimeType)
 	if !ok {

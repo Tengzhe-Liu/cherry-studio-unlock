@@ -44,6 +44,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /api/status", s.wrap(s.status))
 	mux.HandleFunc("POST /api/rescan", s.wrap(s.rescan))
+	mux.HandleFunc("POST /api/config", s.wrap(s.setConfig))
 
 	mux.HandleFunc("GET /api/agents", s.wrap(s.listAgents))
 	mux.HandleFunc("POST /api/agents", s.wrap(s.createAgent))
@@ -119,6 +120,20 @@ func (s *Server) rescan(*http.Request) (any, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+// setConfig 手动指定 app.asar 路径（会先试扫一遍确认有效再保存）。
+func (s *Server) setConfig(r *http.Request) (any, error) {
+	var body struct {
+		AsarPath string `json:"asarPath"`
+	}
+	if err := decodeBody(r, &body); err != nil {
+		return nil, err
+	}
+	if err := s.svc.SetAsarPath(body.AsarPath); err != nil {
+		return nil, err
+	}
+	return s.svc.Status()
 }
 
 func (s *Server) listAgents(*http.Request) (any, error) { return s.svc.ListAgents() }

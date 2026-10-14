@@ -82,6 +82,7 @@
   <div class="card">
     <h2>环境</h2>
     <div class="grid" id="env"></div>
+    <div id="asarBox" style="margin-top:14px"></div>
   </div>
 
   <div class="card">
@@ -113,6 +114,7 @@
       <h2 id="dlgTitle">新建 Agent</h2>
       <label><span class="lb">名称</span><input name="name" required placeholder="例如：政策分析"></label>
       <label><span class="lb">头像（一个 emoji）</span><input name="avatar" placeholder="🧪" maxlength="8"></label>
+      <div id="runtimeError" class="notice err" style="display:none"></div>
       <label><span class="lb">运行时</span><select name="type" id="typeSel"></select></label>
       <label><span class="lb">模型</span><select name="model" id="modelSel"></select></label>
       <label><span class="lb">权限模式</span><select name="permissionMode" id="permSel"></select></label>
@@ -123,6 +125,15 @@
         <option value="max" selected>max</option>
       </select></label>
       <label><span class="lb">系统提示词</span><textarea name="instructions" placeholder="这个 Agent 的角色、规则、输出格式……"></textarea></label>
+      <label id="skipWrap" style="display:none">
+        <span class="lb">
+          <input type="checkbox" id="skipCheck" style="width:auto;margin-right:6px">
+          跳过运行时校验（不推荐）
+        </span>
+        <span class="muted" style="font-size:12px">
+          只在确实扫不到 app.asar 时使用。跳过校验意味着可能创建一个在当前版本里跑不起来的 Agent。
+        </span>
+      </label>
     </div>
     <div class="dlg-foot">
       <span class="muted" id="dlgHint"></span>
@@ -181,6 +192,45 @@ function renderEnv(st) {
   ];
   $("#env").innerHTML = items.map(([k, v]) =>
     `<div class="kv"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+  renderAsarBox(st);
+}
+
+// app.asar 找不到时，运行时就列不出来，也就无法新建 Agent。
+// 所以这里必须给一个能直接操作的入口，而不是只显示一条警告。
+function renderAsarBox(st) {
+  const p = st.install.asarPath || "";
+  const missing = !p;
+  $("#asarBox").innerHTML = `
+    <div class="row" style="align-items:flex-end">
+      <label style="flex:1;margin:0">
+        <span class="lb">app.asar 路径${missing ? "（未找到）" : ""}</span>
+        <input id="asarInput" value="${esc(p)}"
+          placeholder="例如 C:\\app\\AI\\Cherry Studio\\resources\\app.asar">
+      </label>
+      <button onclick="saveAsar()">保存并扫描</button>
+      <button onclick="rescanAll()">重新扫描</button>
+    </div>
+    ${missing ? `<div class="notice warn" style="margin-top:12px">
+      <b>没找到 app.asar，所以「运行时」是空的，也就无法新建 Agent。</b><br>
+      Cherry Studio 装在自定义目录时（不是 Program Files），工具自动找不到它。
+      请把它填到上面：<code>&lt;Cherry Studio 安装目录&gt;\\resources\\app.asar</code>。
+      填一次就会记住，下次不用再填。
+    </div>` : ""}`;
+}
+
+async function saveAsar() {
+  const v = $("#asarInput").value.trim();
+  if (!v) { toast("请填写 app.asar 的完整路径", "err"); return; }
+  try {
+    STATE = await api("POST", "/api/config", { asarPath: v });
+    toast("已保存，运行时列表已刷新", "ok");
+    await loadAll();
+  } catch (e) { toast(e.message, "err"); }
+}
+
+async function rescanAll() {
+  try { await api("POST", "/api/rescan", {}); toast("已重新扫描", "ok"); await loadAll(); }
+  catch (e) { toast(e.message, "err"); }
 }
 
 function renderAlerts(st) {
@@ -299,7 +349,6 @@ async function openCreate() {
   f.reset();
   await prepareForm(null);
   $("#dlgHint").textContent = STATE?.running ? "Cherry Studio 正在运行，保存会被拒绝" : "";
-  $("#dlgSave").disabled = !!STATE?.running;
   $("#dlg").showModal();
 }
 
@@ -317,30 +366,59 @@ async function openEdit(id) {
   f.reasoningEffort.value = a.configuration?.reasoning_effort || "";
   await prepareForm(a);
   $("#dlgHint").textContent = "运行时创建后不可更改";
-  $("#dlgSave").disabled = !!STATE?.running;
   $("#dlg").showModal();
 }
 
 async function prepareForm(a) {
   if (!MODELS.length) MODELS = await api("GET", "/api/models");
-  const runtimes = (STATE?.runtimeChecks || []).filter(r => r.type !== "dsh" || true);
+
+  const runtimes = STATE?.scan?.runtimes || [];
+  const blocked = runtimes.length === 0;
 
   const typeSel = $("#typeSel");
-  typeSel.innerHTML = (STATE?.scan?.runtimes || []).map(r =>
-    `<option value="${esc(r.type)}">${esc(r.label)}（${esc(r.type)}）${r.hidden ? " — 已被本工具解锁" : ""}</option>`
-  ).join("");
+  if (a) {
+    // 编辑时运行时不可改，只展示当前值
+    typeSel.innerHTML = `<option value="${esc(a.type)}">${esc(a.type)}</option>`;
+  } else if (blocked) {
+    // 拿不到运行时列表时，退化成"未经验证"的单项，并要求显式勾选跳过校验。
+    // 关键是：绝不把一个空的下拉框丢给用户，让他不知道为什么选不了。
+    typeSel.innerHTML = `<option value="dsh">dsh（未经验证）</option>`;
+  } else {
+    typeSel.innerHTML = runtimes.map(r =>
+      `<option value="${esc(r.type)}">${esc(r.label)}（${esc(r.type)}）${r.hidden ? " — 已被本工具解锁" : ""}</option>`
+    ).join("");
+  }
   typeSel.disabled = !!a;
 
   const modelSel = $("#modelSel");
   modelSel.innerHTML = MODELS.map(m =>
     `<option value="${esc(m.id)}">${esc(m.id)}${m.enabled ? "" : "（已停用）"}</option>`).join("");
-
-  const type = a ? a.type : (typeSel.value || "dsh");
-  if (a) typeSel.dataset.fixed = a.type;
   if (a) modelSel.value = a.model;
-  syncPerms(a ? a.type : type);
+
+  syncPerms(a ? a.type : typeSel.value);
+
+  const showBlock = blocked && !a;
+  const errBox = $("#runtimeError");
+  errBox.style.display = showBlock ? "block" : "none";
+  if (showBlock) {
+    errBox.innerHTML = STATE?.scanError
+      ? `列不出运行时：${esc(STATE.scanError)}`
+      : `列不出运行时：没有找到 app.asar。请回到主界面，在「环境」一栏填入它的路径后重试。`;
+  }
+  $("#skipWrap").style.display = showBlock ? "block" : "none";
+  $("#skipCheck").checked = false;
+  $("#skipCheck").onchange = updateSaveButton;
+
   typeSel.onchange = () => syncPerms(typeSel.value);
-  modelSel.disabled = !!a && false;
+  updateSaveButton();
+}
+
+// 保存按钮何时可点，集中在一处判断，避免各处漏改导致按钮状态和实际能力对不上。
+function updateSaveButton() {
+  const running = !!STATE?.running;
+  const noRuntime = !$("#typeSel").value;
+  const needsSkip = $("#runtimeError").style.display === "block" && !$("#skipCheck").checked;
+  $("#dlgSave").disabled = running || noRuntime || needsSkip;
 }
 
 function syncPerms(type) {
@@ -363,6 +441,7 @@ $("#agentForm").addEventListener("submit", async e => {
     avatar: f.avatar.value.trim(),
     permissionMode: f.permissionMode.value,
     reasoningEffort: f.reasoningEffort.value,
+    skipRuntimeCheck: $("#skipCheck").checked,
   };
   if (!payload.name) { toast("名称不能为空", "err"); return; }
   if (!payload.model) { toast("必须选择一个模型", "err"); return; }

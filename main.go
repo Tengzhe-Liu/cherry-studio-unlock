@@ -63,6 +63,15 @@ func run(dataDir, asarPath string, port int, noOpen, statusOnly bool) error {
 		return fmt.Errorf("没有找到数据库文件：%s", install.DBPath)
 	}
 
+	// 记住这次定位到的 app.asar。Cherry Studio 必须关闭才能写数据，而关闭后就无法
+	// 从进程反查安装目录了——装在自定义目录的用户下次就会找不到它。
+	if install.AsarPath != "" {
+		if err := cherry.RememberAsarPath(install.DataDir, install.AsarPath); err != nil {
+			install.Warnings = append(install.Warnings,
+				"找到 app.asar 但没能记住路径（"+err.Error()+"）")
+		}
+	}
+
 	svc, err := service.New(install)
 	if err != nil {
 		return err

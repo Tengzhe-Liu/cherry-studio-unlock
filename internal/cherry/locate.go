@@ -115,8 +115,11 @@ func asarCandidates() []string {
 }
 
 // asarFromRunningProcess 从正在运行的 Cherry Studio 进程反查安装路径。
-// 这是最可靠的一招——用户可能装在任意目录（例如 C:\app\AI\Cherry Studio）。
-func asarFromRunningProcess() []string {
+//
+// 声明成变量而不是普通函数，是为了让测试能把它替换成"永远返回空"，
+// 从而真实复现「Cherry Studio 已关闭」这个场景——
+// 那恰恰是本工具唯一允许写入数据的场景，也是最容易定位不到安装目录的场景。
+var asarFromRunningProcess = func() []string {
 	pids := cherryStudioPIDs()
 	if len(pids) == 0 {
 		return nil
@@ -151,6 +154,113 @@ func asarFromRunningProcess() []string {
 	return out
 }
 
+// asarFromWindowsRegistry 从注册表的卸载项反查安装目录。
+//
+// 这是"Cherry Studio 已关闭"时唯一可靠的办法：卸载项的 DisplayIcon 里存着
+// "<安装目录>\Cherry Studio.exe,0"，而 InstallLocation 常常是空的。
+// 用户把程序装在自定义目录（如 C:\app\AI\Cherry Studio）时，别的招都不管用。
+func asarFromWindowsRegistry() []string {
+	script := `$ErrorActionPreference='SilentlyContinue'; ` +
+		`$p=@('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',` +
+		`'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',` +
+		`'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'); ` +
+		`Get-ItemProperty $p | Where-Object { $_.DisplayName -like '*Cherry*' } | ` +
+		`ForEach-Object { "$($_.InstallLocation)|$($_.DisplayIcon)" }`
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", script)
+	raw, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	var out []string
+	for _, line := range strings.Split(string(raw), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "|", 2)
+		var dir string
+		// InstallLocation 优先
+		if loc := strings.TrimSpace(parts[0]); loc != "" && isDir(loc) {
+			dir = loc
+		} else if len(parts) == 2 {
+			dir = dirFromDisplayIcon(parts[1])
+		}
+		if dir == "" {
+			continue
+		}
+		out = append(out, filepath.Join(dir, "resources", "app.asar"))
+	}
+	return out
+}
+
+// dirFromDisplayIcon 把 `C:\path\Cherry Studio.exe,0` 解析成 `C:\path`。
+func dirFromDisplayIcon(icon string) string {
+	icon = strings.TrimSpace(icon)
+	// 去掉尾部引号与 ",0" 这样的图标序号
+	icon = strings.Trim(icon, `"`)
+	if i := strings.LastIndex(icon, ","); i > 0 {
+		icon = icon[:i]
+	}
+	icon = strings.Trim(icon, `" `)
+	if icon == "" {
+		return ""
+	}
+	if strings.EqualFold(filepath.Ext(icon), ".exe") {
+		return filepath.Dir(icon)
+	}
+	if isDir(icon) {
+		return icon
+	}
+	return ""
+}
+
+// asarFromAppBundles 在 macOS 上扫 /Applications 下的 .app，
+// 在 Linux 上读 .desktop 文件。都用 glob，避免写死目录名。
+func asarFromAppBundles() []string {
+	var out []string
+	switch runtime.GOOS {
+	case "darwin":
+		for _, pattern := range []string{"/Applications/*.app", "/Applications/*/*.app"} {
+			matches, _ := filepath.Glob(pattern)
+			for _, m := range matches {
+				if !strings.Contains(strings.ToLower(filepath.Base(m)), "cherry") {
+					continue
+				}
+				out = append(out, filepath.Join(m, "Contents", "Resources", "app.asar"))
+			}
+		}
+	default:
+		for _, pattern := range []string{"/usr/share/applications/*.desktop", "/usr/local/share/applications/*.desktop"} {
+			matches, _ := filepath.Glob(pattern)
+			for _, m := range matches {
+				if !strings.Contains(strings.ToLower(filepath.Base(m)), "cherry") {
+					continue
+				}
+				raw, err := os.ReadFile(m)
+				if err != nil {
+					continue
+				}
+				for _, line := range strings.Split(string(raw), "\n") {
+					if !strings.HasPrefix(line, "Exec=") {
+						continue
+					}
+					exe := strings.Fields(strings.TrimPrefix(line, "Exec="))
+					if len(exe) == 0 {
+						continue
+					}
+					// 可执行文件通常在 <安装目录>/cherrystudio 或类似位置
+					out = append(out,
+						filepath.Join(filepath.Dir(exe[0]), "resources", "app.asar"),
+						filepath.Join(filepath.Dir(filepath.Dir(exe[0])), "resources", "app.asar"))
+				}
+			}
+		}
+	}
+	return out
+}
+
 // Locate 自动定位本机安装。asar 找不到时不算失败（数据库那条路仍然可用），
 // 只是把警告放进 Warnings 里。
 func Locate() (*Install, error) {
@@ -168,7 +278,11 @@ func Locate() (*Install, error) {
 		return nil, fmt.Errorf("找到了数据目录但没有数据库文件：%s", ins.DBPath)
 	}
 
-	// app.asar：先看正在运行的进程，再看常见安装位置
+	// app.asar 的查找顺序，按可靠性从高到低：
+	//   1. 上次记住的路径 —— Cherry Studio 关闭后仍然有效，这是最关键的兜底
+	//   2. 正在运行的进程 —— 需要 App 开着，但能拿到真实安装目录
+	//   3. 注册表卸载项     —— App 关着时的可靠来源，能覆盖自定义安装目录
+	//   4. 常见安装位置     —— 覆盖标准安装
 	seen := map[string]bool{}
 	var candidates []string
 	add := func(p string) {
@@ -179,7 +293,16 @@ func Locate() (*Install, error) {
 		seen[p] = true
 		candidates = append(candidates, p)
 	}
+	add(LoadConfig(dataDir).AsarPath)
 	for _, p := range asarFromRunningProcess() {
+		add(p)
+	}
+	if runtime.GOOS == "windows" {
+		for _, p := range asarFromWindowsRegistry() {
+			add(p)
+		}
+	}
+	for _, p := range asarFromAppBundles() {
 		add(p)
 	}
 	for _, p := range asarCandidates() {
@@ -197,10 +320,12 @@ func Locate() (*Install, error) {
 	if ins.AsarPath == "" {
 		ins.Warnings = append(ins.Warnings,
 			"没有自动找到 app.asar。数据库相关的功能仍然可用，但「运行时扫描」和「打补丁」需要你在界面上手动指定路径。")
-	} else if v := readAsarVersion(ins.AsarPath); v != "" {
-		ins.Version = v
+	} else {
+		ins.Version = readAsarVersion(ins.AsarPath)
 	}
 
+	// 注意：这里不写任何文件。Locate 只负责"探测"，
+	// 持久化由调用方在确定最终数据目录之后执行——否则 --data-dir 覆盖会被忽略。
 	return ins, nil
 }
 
