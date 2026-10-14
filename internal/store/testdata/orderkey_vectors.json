@@ -1,0 +1,566 @@
+[
+  {
+    "a": null,
+    "b": null,
+    "want": "a0",
+    "note": "first key on an empty table"
+  },
+  {
+    "a": null,
+    "b": null,
+    "want": "a0",
+    "note": "append #1"
+  },
+  {
+    "a": "a0",
+    "b": null,
+    "want": "a1",
+    "note": "append #2"
+  },
+  {
+    "a": "a1",
+    "b": null,
+    "want": "a2",
+    "note": "append #3"
+  },
+  {
+    "a": "a2",
+    "b": null,
+    "want": "a3",
+    "note": "append #4"
+  },
+  {
+    "a": "a3",
+    "b": null,
+    "want": "a4",
+    "note": "append #5"
+  },
+  {
+    "a": "a4",
+    "b": null,
+    "want": "a5",
+    "note": "append #6"
+  },
+  {
+    "a": "a5",
+    "b": null,
+    "want": "a6",
+    "note": "append #7"
+  },
+  {
+    "a": "a6",
+    "b": null,
+    "want": "a7",
+    "note": "append #8"
+  },
+  {
+    "a": "a7",
+    "b": null,
+    "want": "a8",
+    "note": "append #9"
+  },
+  {
+    "a": "a8",
+    "b": null,
+    "want": "a9",
+    "note": "append #10"
+  },
+  {
+    "a": "a9",
+    "b": null,
+    "want": "aA",
+    "note": "append #11"
+  },
+  {
+    "a": "aA",
+    "b": null,
+    "want": "aB",
+    "note": "append #12"
+  },
+  {
+    "a": "aB",
+    "b": null,
+    "want": "aC",
+    "note": "append #13"
+  },
+  {
+    "a": "aC",
+    "b": null,
+    "want": "aD",
+    "note": "append #14"
+  },
+  {
+    "a": "aD",
+    "b": null,
+    "want": "aE",
+    "note": "append #15"
+  },
+  {
+    "a": "aE",
+    "b": null,
+    "want": "aF",
+    "note": "append #16"
+  },
+  {
+    "a": "aF",
+    "b": null,
+    "want": "aG",
+    "note": "append #17"
+  },
+  {
+    "a": "aG",
+    "b": null,
+    "want": "aH",
+    "note": "append #18"
+  },
+  {
+    "a": "aH",
+    "b": null,
+    "want": "aI",
+    "note": "append #19"
+  },
+  {
+    "a": "aI",
+    "b": null,
+    "want": "aJ",
+    "note": "append #20"
+  },
+  {
+    "a": "aJ",
+    "b": null,
+    "want": "aK",
+    "note": "append #21"
+  },
+  {
+    "a": "aK",
+    "b": null,
+    "want": "aL",
+    "note": "append #22"
+  },
+  {
+    "a": "aL",
+    "b": null,
+    "want": "aM",
+    "note": "append #23"
+  },
+  {
+    "a": "aM",
+    "b": null,
+    "want": "aN",
+    "note": "append #24"
+  },
+  {
+    "a": "aN",
+    "b": null,
+    "want": "aO",
+    "note": "append #25"
+  },
+  {
+    "a": "aO",
+    "b": null,
+    "want": "aP",
+    "note": "append #26"
+  },
+  {
+    "a": "aP",
+    "b": null,
+    "want": "aQ",
+    "note": "append #27"
+  },
+  {
+    "a": "aQ",
+    "b": null,
+    "want": "aR",
+    "note": "append #28"
+  },
+  {
+    "a": "aR",
+    "b": null,
+    "want": "aS",
+    "note": "append #29"
+  },
+  {
+    "a": "aS",
+    "b": null,
+    "want": "aT",
+    "note": "append #30"
+  },
+  {
+    "a": "aT",
+    "b": null,
+    "want": "aU",
+    "note": "append #31"
+  },
+  {
+    "a": "aU",
+    "b": null,
+    "want": "aV",
+    "note": "append #32"
+  },
+  {
+    "a": "aV",
+    "b": null,
+    "want": "aW",
+    "note": "append #33"
+  },
+  {
+    "a": "aW",
+    "b": null,
+    "want": "aX",
+    "note": "append #34"
+  },
+  {
+    "a": "aX",
+    "b": null,
+    "want": "aY",
+    "note": "append #35"
+  },
+  {
+    "a": "aY",
+    "b": null,
+    "want": "aZ",
+    "note": "append #36"
+  },
+  {
+    "a": "aZ",
+    "b": null,
+    "want": "aa",
+    "note": "append #37"
+  },
+  {
+    "a": "aa",
+    "b": null,
+    "want": "ab",
+    "note": "append #38"
+  },
+  {
+    "a": "ab",
+    "b": null,
+    "want": "ac",
+    "note": "append #39"
+  },
+  {
+    "a": "ac",
+    "b": null,
+    "want": "ad",
+    "note": "append #40"
+  },
+  {
+    "a": "a0",
+    "b": "a1",
+    "want": "a0V",
+    "note": "between #1 and #2"
+  },
+  {
+    "a": "a1",
+    "b": "a2",
+    "want": "a1V",
+    "note": "between #2 and #3"
+  },
+  {
+    "a": "a2",
+    "b": "a3",
+    "want": "a2V",
+    "note": "between #3 and #4"
+  },
+  {
+    "a": "a3",
+    "b": "a4",
+    "want": "a3V",
+    "note": "between #4 and #5"
+  },
+  {
+    "a": "a4",
+    "b": "a5",
+    "want": "a4V",
+    "note": "between #5 and #6"
+  },
+  {
+    "a": "a5",
+    "b": "a6",
+    "want": "a5V",
+    "note": "between #6 and #7"
+  },
+  {
+    "a": "a6",
+    "b": "a7",
+    "want": "a6V",
+    "note": "between #7 and #8"
+  },
+  {
+    "a": "a7",
+    "b": "a8",
+    "want": "a7V",
+    "note": "between #8 and #9"
+  },
+  {
+    "a": "a8",
+    "b": "a9",
+    "want": "a8V",
+    "note": "between #9 and #10"
+  },
+  {
+    "a": "a9",
+    "b": "aA",
+    "want": "a9V",
+    "note": "between #10 and #11"
+  },
+  {
+    "a": "aA",
+    "b": "aB",
+    "want": "aAV",
+    "note": "between #11 and #12"
+  },
+  {
+    "a": "aB",
+    "b": "aC",
+    "want": "aBV",
+    "note": "between #12 and #13"
+  },
+  {
+    "a": "aC",
+    "b": "aD",
+    "want": "aCV",
+    "note": "between #13 and #14"
+  },
+  {
+    "a": "aD",
+    "b": "aE",
+    "want": "aDV",
+    "note": "between #14 and #15"
+  },
+  {
+    "a": "aE",
+    "b": "aF",
+    "want": "aEV",
+    "note": "between #15 and #16"
+  },
+  {
+    "a": "aF",
+    "b": "aG",
+    "want": "aFV",
+    "note": "between #16 and #17"
+  },
+  {
+    "a": "aG",
+    "b": "aH",
+    "want": "aGV",
+    "note": "between #17 and #18"
+  },
+  {
+    "a": "aH",
+    "b": "aI",
+    "want": "aHV",
+    "note": "between #18 and #19"
+  },
+  {
+    "a": "aI",
+    "b": "aJ",
+    "want": "aIV",
+    "note": "between #19 and #20"
+  },
+  {
+    "a": "aJ",
+    "b": "aK",
+    "want": "aJV",
+    "note": "between #20 and #21"
+  },
+  {
+    "a": "aK",
+    "b": "aL",
+    "want": "aKV",
+    "note": "between #21 and #22"
+  },
+  {
+    "a": "aL",
+    "b": "aM",
+    "want": "aLV",
+    "note": "between #22 and #23"
+  },
+  {
+    "a": "aM",
+    "b": "aN",
+    "want": "aMV",
+    "note": "between #23 and #24"
+  },
+  {
+    "a": "aN",
+    "b": "aO",
+    "want": "aNV",
+    "note": "between #24 and #25"
+  },
+  {
+    "a": "aO",
+    "b": "aP",
+    "want": "aOV",
+    "note": "between #25 and #26"
+  },
+  {
+    "a": "aP",
+    "b": "aQ",
+    "want": "aPV",
+    "note": "between #26 and #27"
+  },
+  {
+    "a": "aQ",
+    "b": "aR",
+    "want": "aQV",
+    "note": "between #27 and #28"
+  },
+  {
+    "a": "aR",
+    "b": "aS",
+    "want": "aRV",
+    "note": "between #28 and #29"
+  },
+  {
+    "a": "aS",
+    "b": "aT",
+    "want": "aSV",
+    "note": "between #29 and #30"
+  },
+  {
+    "a": "aT",
+    "b": "aU",
+    "want": "aTV",
+    "note": "between #30 and #31"
+  },
+  {
+    "a": "aU",
+    "b": "aV",
+    "want": "aUV",
+    "note": "between #31 and #32"
+  },
+  {
+    "a": "aV",
+    "b": "aW",
+    "want": "aVV",
+    "note": "between #32 and #33"
+  },
+  {
+    "a": "aW",
+    "b": "aX",
+    "want": "aWV",
+    "note": "between #33 and #34"
+  },
+  {
+    "a": "aX",
+    "b": "aY",
+    "want": "aXV",
+    "note": "between #34 and #35"
+  },
+  {
+    "a": "aY",
+    "b": "aZ",
+    "want": "aYV",
+    "note": "between #35 and #36"
+  },
+  {
+    "a": "aZ",
+    "b": "aa",
+    "want": "aZV",
+    "note": "between #36 and #37"
+  },
+  {
+    "a": "aa",
+    "b": "ab",
+    "want": "aaV",
+    "note": "between #37 and #38"
+  },
+  {
+    "a": "ab",
+    "b": "ac",
+    "want": "abV",
+    "note": "between #38 and #39"
+  },
+  {
+    "a": "ac",
+    "b": "ad",
+    "want": "acV",
+    "note": "between #39 and #40"
+  },
+  {
+    "a": "a0",
+    "b": "a5",
+    "want": "a1",
+    "note": "between #1 and #6"
+  },
+  {
+    "a": "a6",
+    "b": "aB",
+    "want": "a7",
+    "note": "between #7 and #12"
+  },
+  {
+    "a": "aC",
+    "b": "aH",
+    "want": "aD",
+    "note": "between #13 and #18"
+  },
+  {
+    "a": "aI",
+    "b": "aN",
+    "want": "aJ",
+    "note": "between #19 and #24"
+  },
+  {
+    "a": "aO",
+    "b": "aT",
+    "want": "aP",
+    "note": "between #25 and #30"
+  },
+  {
+    "a": "aU",
+    "b": "aZ",
+    "want": "aV",
+    "note": "between #31 and #36"
+  },
+  {
+    "a": null,
+    "b": "a0",
+    "want": "Zz",
+    "note": "insert before the first key"
+  },
+  {
+    "a": null,
+    "b": "a1",
+    "want": "a0",
+    "note": "insert before the second key"
+  },
+  {
+    "a": "Zz",
+    "b": null,
+    "want": "a0",
+    "note": "append after the last key of the Z-run"
+  },
+  {
+    "a": "Zy",
+    "b": "a0",
+    "want": "Zz",
+    "note": "between the Z-run and the a-run"
+  },
+  {
+    "a": "a0",
+    "b": "a1",
+    "want": "a0V",
+    "note": "between the first two a-run keys"
+  },
+  {
+    "a": "a9",
+    "b": "aA",
+    "want": "a9V",
+    "note": "between digit-run and letter-run"
+  },
+  {
+    "a": "az",
+    "b": null,
+    "want": "b00",
+    "note": "append after az"
+  },
+  {
+    "a": "a3",
+    "b": null,
+    "want": "a4",
+    "note": "the real-world case: current max in a fresh install is a3"
+  }
+]

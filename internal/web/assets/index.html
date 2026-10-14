@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cherry Agent Manager</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --fg:#e6e8ee; --muted:#98a0b3; --accent:#5b9dff; --ok:#3ecf8e;
+    --warn:#ffb648; --danger:#ff6b6b; --radius:10px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{--bg:#f5f6f8;--panel:#fff;--panel2:#f0f2f5;--line:#dfe3ea;--fg:#1a1d24;--muted:#66708a;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:14px/1.6 -apple-system,"Segoe UI",system-ui,"Microsoft YaHei",sans-serif}
+  header{padding:20px 24px 0;max-width:1080px;margin:0 auto}
+  h1{font-size:19px;margin:0 0 4px;font-weight:650}
+  h2{font-size:15px;margin:0 0 12px;font-weight:600}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  main{max-width:1080px;margin:0 auto;padding:0 24px 60px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;margin-bottom:16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .kv{background:var(--panel2);border-radius:8px;padding:10px 12px}
+  .kv .k{color:var(--muted);font-size:12px}
+  .kv .v{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;word-break:break-all}
+  button{font:inherit;border-radius:8px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--fg);padding:7px 13px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){border-color:var(--accent)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#08111f;font-weight:600}
+  button.danger{border-color:#5a2b2b;color:var(--danger)}
+  input,select,textarea{font:inherit;width:100%;background:var(--panel2);color:var(--fg);
+    border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  textarea{min-height:130px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+  label{display:block;margin-bottom:12px}
+  label .lb{display:block;margin-bottom:5px;color:var(--muted);font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:500;font-size:12px}
+  .pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11.5px;
+    border:1px solid var(--line);background:var(--panel2)}
+  .pill.ok{color:var(--ok);border-color:#1f4d38}
+  .pill.warn{color:var(--warn);border-color:#5a441f}
+  .pill.bad{color:var(--danger);border-color:#5a2b2b}
+  .notice{border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:13px;border:1px solid}
+  .notice.warn{background:#2a2113;border-color:#5a441f;color:#ffd79a}
+  .notice.err{background:#2a1414;border-color:#5a2b2b;color:#ffb3b3}
+  .notice.ok{background:#12241c;border-color:#1f4d38;color:#9be8c4}
+  @media (prefers-color-scheme: light){
+    .notice.warn{background:#fff7e8}.notice.err{background:#fdeeee}.notice.ok{background:#eafaf3}
+  }
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .row.end{justify-content:flex-end}
+  .muted{color:var(--muted)}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);
+    padding:0;width:min(680px,92vw);max-height:88vh}
+  dialog::backdrop{background:#000a}
+  .dlg-body{padding:20px 22px;overflow:auto;max-height:calc(88vh - 60px)}
+  .dlg-foot{padding:13px 22px;border-top:1px solid var(--line);display:flex;
+    justify-content:space-between;gap:10px;align-items:center}
+  .toast{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:9}
+  .toast div{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    padding:10px 14px;border-radius:8px;max-width:420px;font-size:13px;box-shadow:0 6px 24px #0006}
+  .toast div.err{border-left-color:var(--danger)}
+  .toast div.ok{border-left-color:var(--ok)}
+  details summary{cursor:pointer;color:var(--muted);font-size:13px}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cherry Agent Manager</h1>
+  <div class="sub">解锁 Cherry Studio 隐藏的 Agent 运行时，并管理已有的 Agent。</div>
+</header>
+<main>
+  <div id="alerts"></div>
+  <div class="card">
+    <h2>环境</h2>
+    <div class="grid" id="env"></div>
+  </div>
+
+  <div class="card">
+    <h2>运行时</h2>
+    <div id="runtimes"></div>
+    <div id="patchBox" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Agent</h2>
+      <div class="row">
+        <button onclick="loadAll()">刷新</button>
+        <button class="primary" onclick="openCreate()">新建 Agent</button>
+      </div>
+    </div>
+    <div id="agents" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h2>备份与撤销</h2>
+    <div id="backups"></div>
+  </div>
+</main>
+
+<dialog id="dlg">
+  <form id="agentForm" method="dialog">
+    <div class="dlg-body">
+      <h2 id="dlgTitle">新建 Agent</h2>
+      <label><span class="lb">名称</span><input name="name" required placeholder="例如：政策分析"></label>
+      <label><span class="lb">头像（一个 emoji）</span><input name="avatar" placeholder="🧪" maxlength="8"></label>
+      <label><span class="lb">运行时</span><select name="type" id="typeSel"></select></label>
+      <label><span class="lb">模型</span><select name="model" id="modelSel"></select></label>
+      <label><span class="lb">权限模式</span><select name="permissionMode" id="permSel"></select></label>
+      <label><span class="lb">推理强度</span><select name="reasoningEffort">
+        <option value="">（不设置）</option>
+        <option value="default">default</option><option value="low">low</option>
+        <option value="medium">medium</option><option value="high">high</option>
+        <option value="max" selected>max</option>
+      </select></label>
+      <label><span class="lb">系统提示词</span><textarea name="instructions" placeholder="这个 Agent 的角色、规则、输出格式……"></textarea></label>
+    </div>
+    <div class="dlg-foot">
+      <span class="muted" id="dlgHint"></span>
+      <span class="row">
+        <button type="button" onclick="dlg.close()">取消</button>
+        <button type="submit" class="primary" id="dlgSave">保存</button>
+      </span>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+let STATE = null;
+
+const PERMS = {
+  "default": ["default", "plan", "acceptEdits", "bypassPermissions"],
+  "dsh": ["default", "plan", "acceptEdits", "bypassPermissions"],
+  "pi": ["default", "acceptEdits", "bypassPermissions"],
+  "claude-code": ["default", "plan", "acceptEdits", "auto", "bypassPermissions"],
+};
+
+function toast(msg, kind = "") {
+  const el = document.createElement("div");
+  el.className = kind;
+  el.textContent = msg;
+  $("#toast").appendChild(el);
+  setTimeout(() => el.remove(), kind === "err" ? 9000 : 4500);
+}
+
+async function api(method, path, body) {
+  const res = await fetch(path, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = { error: text }; }
+  if (!res.ok) throw new Error((data && data.error) || ("HTTP " + res.status));
+  return data;
+}
+
+const esc = s => (s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function renderEnv(st) {
+  const i = st.install;
+  const items = [
+    ["数据目录", i.dataDir],
+    ["程序版本", i.version || "（未识别）"],
+    ["app.asar", i.asarPath || "（未找到）"],
+    ["Cherry Studio", st.running ? "正在运行" : "未运行"],
+    ["已有 Agent", String(st.agentCount)],
+  ];
+  $("#env").innerHTML = items.map(([k, v]) =>
+    `<div class="kv"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+}
+
+function renderAlerts(st) {
+  const out = [];
+  if (st.running) {
+    out.push(`<div class="notice warn"><b>Cherry Studio 正在运行。</b>
+      写操作（新建 / 修改 / 删除 / 打补丁）会被拒绝——它在内存里缓存了 Agent 列表，
+      运行中写入会被覆盖。请从右下角托盘图标完全退出后，重新打开本工具。</div>`);
+  }
+  if (!st.install.asarPath) {
+    out.push(`<div class="notice warn">没有找到 <code>app.asar</code>。
+      数据库相关功能仍可用，但运行时扫描与打补丁需要它。请手动指定路径。</div>`);
+  }
+  if (st.scanError) {
+    out.push(`<div class="notice err">运行时扫描失败：${esc(st.scanError)}</div>`);
+  }
+  (st.install.warnings || []).forEach(w => out.push(`<div class="notice warn">${esc(w)}</div>`));
+  $("#alerts").innerHTML = out.join("");
+}
+
+function renderRuntimes(st) {
+  const checks = st.runtimeChecks || [];
+  if (!checks.length) {
+    $("#runtimes").innerHTML = `<div class="muted">未能识别到任何运行时。</div>`;
+  } else {
+    $("#runtimes").innerHTML = `<table><thead><tr>
+        <th>运行时</th><th>类型</th><th>状态</th></tr></thead><tbody>` +
+      checks.map(c => `<tr>
+        <td>${esc(c.label)}</td>
+        <td class="mono">${esc(c.type)}</td>
+        <td>${c.hidden
+          ? `<span class="pill bad">被隐藏</span> <span class="muted">${esc(c.verdict)}</span>`
+          : `<span class="pill ok">可用</span> <span class="muted">${esc(c.verdict)}</span>`}</td>
+      </tr>`).join("") + `</tbody></table>`;
+  }
+  renderPatch(st);
+}
+
+function renderPatch(st) {
+  const p = st.patchState || {};
+  const box = $("#patchBox");
+  const disabled = st.running ? "disabled" : "";
+
+  if (p.applied) {
+    box.innerHTML = `<div class="notice ok">补丁<b>已生效</b>：
+      Cherry Studio 的新建 Agent 界面现在会直接列出被隐藏的运行时。
+      记得重启 Cherry Studio 生效。</div>
+      <div class="row end"><button class="danger" ${disabled} onclick="revertPatch()">撤销补丁</button></div>`;
+    return;
+  }
+  if (!p.supported) {
+    box.innerHTML = `<div class="muted">${esc(p.reason || "当前版本无需打补丁。")}</div>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="notice warn">
+      运行时被 <code>${esc(p.targetFile || "")}</code> 里的一条过滤语句挡住了：
+      <div class="mono" style="margin-top:8px">${esc(p.statement || "")}</div>
+      <div style="margin-top:8px">打补丁会把这几个字节换成等长的恒真表达式——
+      <b>文件大小不变</b>，只备份被改的那几个字节，随时可撤销。</div>
+    </div>
+    <div class="row end"><button class="primary" ${disabled} onclick="applyPatch()">打补丁解锁</button></div>`;
+}
+
+function renderAgents(list) {
+  if (!list.length) { $("#agents").innerHTML = `<div class="muted">还没有 Agent。</div>`; return; }
+  $("#agents").innerHTML = `<table><thead><tr>
+      <th>头像</th><th>名称</th><th>运行时</th><th>模型</th><th>排序键</th><th></th>
+    </tr></thead><tbody>` + list.map(a => `<tr>
+      <td>${esc(a.configuration?.avatar || "")}</td>
+      <td>${esc(a.name)}</td>
+      <td><span class="pill">${esc(a.type)}</span></td>
+      <td class="mono">${esc(a.model)}</td>
+      <td class="mono">${esc(a.orderKey)}</td>
+      <td class="row end">
+        <button onclick='openEdit(${JSON.stringify(a.id)})'>编辑</button>
+        <button onclick='dupAgent(${JSON.stringify(a.id)})'>复制</button>
+        <button class="danger" onclick='delAgent(${JSON.stringify(a.id)}, ${JSON.stringify(a.name)})'>删除</button>
+      </td>
+    </tr>`).join("") + `</tbody></table>`;
+}
+
+function renderBackups(list) {
+  if (!list.length) { $("#backups").innerHTML = `<div class="muted">暂无备份。每次写操作前都会自动备份。</div>`; return; }
+  $("#backups").innerHTML = `<table><thead><tr>
+      <th>时间</th><th>原因</th><th>文件</th><th></th></tr></thead><tbody>` +
+    list.map(b => `<tr>
+      <td class="mono">${esc(new Date(b.createdAt).toLocaleString())}</td>
+      <td>${esc(b.reason)}</td>
+      <td class="mono">${(b.entries || []).map(e => esc(e.stored)).join(", ")}</td>
+      <td class="row end"><button onclick='restore(${JSON.stringify(b.id)})'>恢复此备份</button></td>
+    </tr>`).join("") + `</tbody></table>`;
+}
+
+async function loadAll() {
+  try {
+    STATE = await api("GET", "/api/status");
+    renderAlerts(STATE);
+    renderEnv(STATE);
+    renderRuntimes(STATE);
+    renderBackups(STATE.backups || []);
+    const agents = await api("GET", "/api/agents");
+    renderAgents(agents);
+  } catch (e) { toast(e.message, "err"); }
+}
+
+// ---------- 表单 ----------
+
+let MODELS = [];
+let EDITING = null;
+
+async function openCreate() {
+  EDITING = null;
+  $("#dlgTitle").textContent = "新建 Agent";
+  const f = $("#agentForm");
+  f.reset();
+  await prepareForm(null);
+  $("#dlgHint").textContent = STATE?.running ? "Cherry Studio 正在运行，保存会被拒绝" : "";
+  $("#dlgSave").disabled = !!STATE?.running;
+  $("#dlg").showModal();
+}
+
+async function openEdit(id) {
+  const agents = await api("GET", "/api/agents");
+  const a = agents.find(x => x.id === id);
+  if (!a) return;
+  EDITING = a;
+  $("#dlgTitle").textContent = "编辑 " + a.name;
+  const f = $("#agentForm");
+  f.name.value = a.name;
+  f.avatar.value = a.configuration?.avatar || "";
+  f.instructions.value = a.instructions || "";
+  f.permissionMode.value = a.configuration?.permission_mode || "";
+  f.reasoningEffort.value = a.configuration?.reasoning_effort || "";
+  await prepareForm(a);
+  $("#dlgHint").textContent = "运行时创建后不可更改";
+  $("#dlgSave").disabled = !!STATE?.running;
+  $("#dlg").showModal();
+}
+
+async function prepareForm(a) {
+  if (!MODELS.length) MODELS = await api("GET", "/api/models");
+  const runtimes = (STATE?.runtimeChecks || []).filter(r => r.type !== "dsh" || true);
+
+  const typeSel = $("#typeSel");
+  typeSel.innerHTML = (STATE?.scan?.runtimes || []).map(r =>
+    `<option value="${esc(r.type)}">${esc(r.label)}（${esc(r.type)}）${r.hidden ? " — 已被本工具解锁" : ""}</option>`
+  ).join("");
+  typeSel.disabled = !!a;
+
+  const modelSel = $("#modelSel");
+  modelSel.innerHTML = MODELS.map(m =>
+    `<option value="${esc(m.id)}">${esc(m.id)}${m.enabled ? "" : "（已停用）"}</option>`).join("");
+
+  const type = a ? a.type : (typeSel.value || "dsh");
+  if (a) typeSel.dataset.fixed = a.type;
+  if (a) modelSel.value = a.model;
+  syncPerms(a ? a.type : type);
+  typeSel.onchange = () => syncPerms(typeSel.value);
+  modelSel.disabled = !!a && false;
+}
+
+function syncPerms(type) {
+  const list = PERMS[type] || ["default", "acceptEdits", "bypassPermissions"];
+  const sel = $("#permSel");
+  const cur = sel.value;
+  sel.innerHTML = list.map(p => `<option value="${p}">${p}</option>`).join("");
+  if (list.includes(cur)) sel.value = cur;
+}
+
+$("#agentForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target;
+  const payload = {
+    type: EDITING ? EDITING.type : f.type.value,
+    name: f.name.value.trim(),
+    description: EDITING?.description || "",
+    instructions: f.instructions.value,
+    model: f.model.value,
+    avatar: f.avatar.value.trim(),
+    permissionMode: f.permissionMode.value,
+    reasoningEffort: f.reasoningEffort.value,
+  };
+  if (!payload.name) { toast("名称不能为空", "err"); return; }
+  if (!payload.model) { toast("必须选择一个模型", "err"); return; }
+  try {
+    if (EDITING) await api("PUT", "/api/agents/" + EDITING.id, payload);
+    else await api("POST", "/api/agents", payload);
+    $("#dlg").close();
+    toast(EDITING ? "已保存" : "已创建", "ok");
+    loadAll();
+  } catch (err) { toast(err.message, "err"); }
+});
+
+async function dupAgent(id) {
+  try { await api("POST", "/api/agents/" + id + "/duplicate", {}); toast("已复制", "ok"); loadAll(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+async function delAgent(id, name) {
+  if (!confirm(`确定要永久删除「${name}」吗？\n\n删除前会自动备份，但这一步不可在界面上直接撤销。`)) return;
+  try { await api("DELETE", "/api/agents/" + id); toast("已删除", "ok"); loadAll(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+async function applyPatch() {
+  if (!confirm("确定要修改 app.asar 吗？\n\n这会改动 Cherry Studio 的程序文件（仅替换几个字节，大小不变）。\n随时可以撤销。")) return;
+  try { await api("POST", "/api/patch/apply", {}); toast("补丁已应用，重启 Cherry Studio 生效", "ok"); loadAll(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+async function revertPatch() {
+  try { await api("POST", "/api/patch/revert", {}); toast("补丁已撤销", "ok"); loadAll(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+async function restore(id) {
+  if (!confirm("确定要用这个备份覆盖当前数据吗？\n\n当前状态会先被另存一份，所以这一步本身也可以再撤销。")) return;
+  try { await api("POST", "/api/backups/" + id + "/restore", {}); toast("已恢复", "ok"); loadAll(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+loadAll();
+</script>
+</body>
+</html>

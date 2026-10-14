@@ -1,0 +1,12 @@
+/dist/
+/cherry-agent-manager
+/cherry-agent-manager.exe
+
+# 测试用的临时副本，可能包含真实数据的拷贝，绝对不要提交
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+/tmp/
+
+.DS_Store
+Thumbs.db
