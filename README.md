@@ -1,12 +1,12 @@
 # Cherry Agent Manager
 
 **解锁 Cherry Studio 隐藏的 Agent 运行时，并管理你已有的 Agent。**
-
-Cherry Studio 内置了 DeepSeek Harness（`dsh`）运行时——驱动、能力表、工具、图标、多语言全都在——
-但**新建 Agent 的界面里选不到它**。本工具把这道人为的遮挡打开，并顺带给你一个 Agent 管理器。
+Unlock the agent runtimes Cherry Studio hides, and manage your agents.
 
 > ⚠️ 非官方工具。会修改 Cherry Studio 的本地数据（数据库或 `app.asar`）。
 > 所有写操作都会**先自动备份**，且大部分操作可一键撤销。请仍然自行留意备份。
+
+**中文** ｜ [English](#english)
 
 ---
 
@@ -262,3 +262,289 @@ dsh:           { ..., heartbeat: false, ... },   // ← 只有它是 false
 
 本项目代码以 [MIT](LICENSE) 授权。
 第三方组件的许可与出处见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
+
+---
+---
+
+# English
+
+**Unlock the agent runtimes Cherry Studio hides, and manage your agents.**
+
+Cherry Studio ships the DeepSeek Harness (`dsh`) runtime — driver, capability table, tools,
+icons, translations, all of it — but **you cannot pick it in the new-agent dialog**.
+This tool opens that artificial block, and gives you an agent manager along the way.
+
+> ⚠️ Unofficial tool. It modifies Cherry Studio's local data (its database, or `app.asar`).
+> Every write is **backed up automatically** first, and most actions undo with one click.
+> Keep your own backups anyway.
+
+[中文](#cherry-agent-manager) ｜ **English**
+
+---
+
+## The problem it solves
+
+In Cherry Studio v1.13.8 (`CherryStudio@2.1.6` inside `app.asar`):
+
+**The runtime really is implemented and registered** (`out/main/main.js`):
+
+```js
+runtimeDriverRegistry.register(new LazyClaudeCodeRuntimeDriver());
+runtimeDriverRegistry.register(new PiRuntimeDriver());
+runtimeDriverRegistry.register(new DshRuntimeDriver());   // ← dsh is right here
+```
+
+`AGENT_RUNTIME_CAPABILITIES` has a complete entry for it too, labelled "DeepSeek Harness".
+
+**But the create dialog filters it out** (`out/renderer/assets/EditDialogShared-*.js`):
+
+```js
+var RUNTIMES = Object.keys(AGENT_RUNTIME_CAPABILITIES).filter((runtime) => runtime !== "dsh");
+```
+
+So "Runtime mode" offers only Claude Agent and Pi.
+
+This tool does two things — pick either or both:
+
+| Approach | What it does | Result |
+|---|---|---|
+| **Patch** (recommended) | Replaces `runtime !== "dsh"` with an **equal-length** always-true expression | dsh becomes selectable in Cherry Studio's own dialog |
+| **Database write** | Inserts a row with `type='dsh'` into the `agent` table | Touches no program files, and usually survives updates |
+
+---
+
+## Quick start
+
+### Download and run
+
+Grab the file for your platform from [Releases](../../releases), run it, and your browser
+opens the UI automatically.
+
+| Platform | File |
+|---|---|
+| Windows | `cherry-agent-manager_windows_amd64.exe` |
+| macOS (Apple silicon) | `cherry-agent-manager_darwin_arm64` |
+| macOS (Intel) | `cherry-agent-manager_darwin_amd64` |
+| Linux (x86_64) | `cherry-agent-manager_linux_amd64` |
+| Linux (ARM64) | `cherry-agent-manager_linux_arm64` |
+
+No dependencies — no Node, no Python, no runtime to install.
+
+### Command line
+
+```bash
+cherry-agent-manager                  # detect the environment and open the UI
+cherry-agent-manager --status         # print the self-check and exit
+cherry-agent-manager --lang en        # start with the English UI
+cherry-agent-manager --port 8765      # pick a port
+cherry-agent-manager --no-open        # do not open a browser
+cherry-agent-manager --data-dir DIR   # set the data directory manually
+cherry-agent-manager --asar FILE      # set app.asar manually
+```
+
+### Interface language
+
+The top-right corner switches between **中文 / English**, and the choice is remembered.
+The switch is **global**: UI text, runtime verdicts, and backend error messages all follow
+it — you will not get an English UI that throws Chinese errors.
+
+The CLI supports it too: `--lang zh|en`. When omitted the order is
+**flag → config file → environment (`LANG` / `LC_ALL`) → Chinese**.
+
+### Build from source
+
+```bash
+git clone <this repo>
+cd cherry-agent-manager
+make build        # or: go build .
+make release      # cross-compile all five platforms into dist/
+```
+
+Go 1.22+ is all you need. **No cgo** — SQLite is a pure-Go implementation.
+
+---
+
+## Steps
+
+1. **Quit Cherry Studio completely** — including the tray icon → Quit.
+   It caches the agent list in memory and would overwrite your changes;
+   the tool detects this and refuses to write.
+2. Run this tool.
+3. In the Runtimes card, confirm `dsh` shows as **Hidden**.
+4. Click **Unlock with patch** (or skip this and use "New agent" below).
+5. Reopen Cherry Studio — **DeepSeek Harness** is now selectable when creating an agent.
+
+Prefer the database route? Just click **New agent** in this tool and pick `dsh`.
+
+Want to go back? Click **Revert patch**, or restore any backup with one click.
+
+---
+
+## Troubleshooting
+
+### The Runtimes list is empty / the runtime cannot be selected
+
+**Cause: `app.asar` was not found.** The runtime list is scanned out of `app.asar`.
+
+If Cherry Studio is installed in the standard location (e.g. `Program Files`) the tool finds
+it automatically. Otherwise it tries, in order:
+
+1. The path remembered from last time (`cherry-agent-manager.json` in the data directory)
+2. A running process — **but you must quit Cherry Studio before writing, so this line goes dead**
+3. The Windows registry uninstall entry
+4. Common install locations
+
+If none hit, set the path manually in the Environment card — **it is remembered after the first time**:
+
+```
+<Cherry Studio install dir>\resources\app.asar
+```
+
+Not sure where it is installed? Check "About" inside Cherry Studio, or right-click the Start
+menu shortcut → Open file location.
+
+> v0.1's first release had this bug: it only used "running process + standard paths", so a user
+> who followed the instructions and **quit Cherry Studio first** could no longer find `app.asar` —
+> and quitting is the one scenario where writing is allowed. Registry lookup and path memory are
+> now in place, locked down by an end-to-end regression test
+> (`TestAsarLookupDoesNotDependOnRunningProcess`).
+
+### The Save button is greyed out
+
+- **Cherry Studio is running** — quit it completely (including the tray icon) and reopen this tool.
+- **A red box says runtimes cannot be listed** — set `app.asar` first, or explicitly tick
+  "Skip runtime check" (not recommended; you may create an agent that cannot run).
+
+### Patched, but dsh still is not in the dialog
+
+1. Confirm the patch state says **active**;
+2. **Restart Cherry Studio** — the patch changes a file loaded at startup;
+3. If it still is not there, this version filters differently. Run `--status` and paste the
+   output into an issue.
+
+---
+
+## Safety design
+
+This tool touches your data, so:
+
+- **Backup before every write.** `cherrystudio.sqlite` (with `-wal`/`-shm`) is copied to
+  `<data dir>/backups-manual/cherry-agent-manager/` along with a `manifest.json`.
+- **Undo is itself undoable.** Before restoring a backup, the current state is saved too.
+- **Equal-length replacement.** The patch swaps the 17 bytes of `runtime !== "dsh"` for
+  `true /*unlocked*/` — exactly the same length. That means no need to rewrite the whole
+  288 MB archive, and **the file size does not change**. Only the replaced bytes are backed up.
+- **Context check before revert.** A Cherry Studio update changes `app.asar`, invalidating the
+  old offset. Before reverting, the tool hashes 32 bytes on either side of the change and
+  refuses to run if they differ — rather than corrupting the file.
+- **Refuses unknown schemas.** Opening the database validates the `agent` table's columns first;
+  a mismatch is a hard error, never a half-blind insert.
+- **Refuses to create agents that cannot run.** It scans `app.asar` before writing to confirm
+  the target runtime is actually implemented.
+- **Loopback only.** The server listens on `127.0.0.1` and is never exposed externally.
+
+---
+
+## How it works
+
+```
+internal/
+├── asar/       pure-Go parser for Electron .asar archives (with in-place poke support)
+├── cherry/     environment: data dir, process state, runtime scan, backups
+├── store/      SQLite access + the fractional-indexing order-key algorithm
+├── patch/      app.asar patching (equal-length replacement, revertible)
+├── service/    use-case orchestration: back up → validate → write → mkdir → verify
+└── web/        local HTTP server + embedded UI
+```
+
+Two things worth calling out:
+
+**The order-key algorithm is a line-by-line port.** Cherry Studio generates `order_key` with
+`fractional-indexing@3.2.0`. Inventing our own keys would make new agents collide with ones the
+app creates later. So the upstream implementation is ported to Go in full, and checked against
+**94 test vectors generated from the JS implementation extracted out of the real `app.asar`** —
+the assertion is "byte-identical to what Cherry Studio generates", not "close enough".
+
+**Runtimes are scanned, not hard-coded.** The tool does not know the name `dsh`; it parses the
+keys of `AGENT_RUNTIME_CAPABILITIES`, the driver list from `runtimeDriverRegistry.register(...)`,
+and the filter statement guarding the create dialog, all out of `app.asar`. If Cherry Studio
+hides another runtime later, the tool finds it by itself.
+
+---
+
+## Known limitations
+
+- **A Cherry Studio update breaks the patch.** Updates overwrite `app.asar`; just re-run it.
+- **A major schema change breaks the database route** — the tool errors out clearly instead of writing bad data.
+- **Only the `runtime !== "X"` filter form is handled.** If a version switches to an `===` allowlist,
+  the tool refuses to patch and says why (it will not guess).
+- **No diff-style repacking.** Changing the file length (if the filter statement structure changes)
+  is not supported yet.
+
+---
+
+## Roadmap
+
+- [ ] **Inject brand-new third-party runtimes** (opencode, …).
+      That is not "unlocking" but "implementing": writing a full driver against Cherry Studio's
+      undocumented internals and patching both the main and renderer bundles. Feasibility report:
+      [`docs/runtime-injection.md`](docs/runtime-injection.md).
+- [ ] Automatic backup pruning (keep the last N)
+- [ ] Agent import/export
+
+---
+
+## Contributing
+
+Issues and PRs welcome. Especially: **run `--status` against a different Cherry Studio version
+and paste the output** — bundle layouts differ between versions, and that is what makes the tool
+adaptable.
+
+```bash
+go test ./...                                                    # unit tests
+CHERRY_ASAR=/path/to/app.asar     go test ./... -run Real -v      # integration vs. a real archive
+CHERRY_DB=/path/to/cherrystudio.sqlite go test ./... -run CRUD -v
+```
+
+Every integration test copies the archive/database first and works on the copy — your real data
+is never touched.
+
+---
+
+## Disclaimer
+
+This project is **not affiliated with, authorized by, or endorsed by** Cherry Studio, and does not
+represent its positions. "Cherry Studio" appears here only to name what the tool is compatible
+with. This project **contains and distributes none** of Cherry Studio's code or binaries.
+
+### Why does the vendor hide dsh? — We don't know, and we don't guess
+
+The tool describes only **observable facts** (that `.filter((runtime) => runtime !== "dsh")` line
+in `app.asar`) and does not attribute motives. One detail is worth noting though:
+
+```js
+"claude-code": { ..., heartbeat: true,  ... },
+pi:            { ..., heartbeat: true,  ... },
+dsh:           { ..., heartbeat: false, ... },   // ← the only one that is false
+```
+
+`heartbeat: false` means the runtime is not supported for scheduled tasks (heartbeats).
+That *may* indicate dsh was not fully finished in that version — but that is speculation, not a
+conclusion.
+
+**This tool does not change any of that.** It only opens the creation entry point; the runtime's
+maturity is still up to the vendor's implementation. Judge for yourself whether to rely on dsh
+agents for anything important.
+
+### Risks
+
+- It modifies **your own data on your own machine**;
+- Every write is backed up first and most actions are revertible — but there is **no warranty**.
+  Keep your own backups;
+- Patching modifies program files and **must be re-applied after every Cherry Studio update**;
+- If the vendor re-enables this runtime, this tool has served its purpose and can retire.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+Third-party components and their licenses: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -173,6 +173,7 @@ var messages = map[string]map[Lang]string{
 
 	// ---------- 界面其它 ----------
 	"ui.langName": {Zh: "中文", En: "English"},
+	"dup.suffix":  {Zh: " 副本", En: " copy"},
 }
 
 // T 渲染一条文案。缺失的 key 会原样返回，方便一眼看出漏翻。

@@ -111,7 +111,7 @@ func (d *DB) verifySchema() error {
 		return err
 	}
 	if len(have) == 0 {
-		return &SchemaError{Path: d.path, Missing: []string{"agent 表本身"}}
+		return &SchemaError{Path: d.path, NoTable: true}
 	}
 
 	var missing []string
@@ -148,7 +148,7 @@ func (d *DB) Models() ([]Model, error) {
 	rows, err := d.sql.Query(
 		`SELECT id, provider_id, coalesce(name, ''), is_enabled FROM user_model ORDER BY provider_id, id`)
 	if err != nil {
-		return nil, fmt.Errorf("读取模型列表失败: %w", err)
+		return nil, i18n.Wrap("err.readModels", err)
 	}
 	defer rows.Close()
 

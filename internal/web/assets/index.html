@@ -204,7 +204,7 @@ const DICT = {
     "confirm.patch": "确定要修改 app.asar 吗？\n\n这会改动 Cherry Studio 的程序文件（仅替换几个字节，大小不变）。\n随时可以撤销。",
     "confirm.restore": "确定要用这个备份覆盖当前数据吗？\n\n当前状态会先被另存一份，所以这一步本身也可以再撤销。",
     "toast.created": "已创建", "toast.saved": "已保存", "toast.deleted": "已删除",
-    "toast.duped": "已复制", "toast.patched": "补丁已应用，重启 Cherry Studio 生效",
+    "toast.duped": "已复制", "dup.suffix": " 副本", "toast.patched": "补丁已应用，重启 Cherry Studio 生效",
     "toast.reverted": "补丁已撤销", "toast.restored": "已恢复",
     "toast.asarSaved": "已保存，运行时列表已刷新", "toast.rescanned": "已重新扫描",
     "err.nameEmpty": "名称不能为空", "err.modelRequired": "必须选择一个模型",
@@ -255,7 +255,7 @@ const DICT = {
     "confirm.patch": "Modify app.asar?\n\nThis changes Cherry Studio's program files (only a few bytes, size unchanged).\nIt can be reverted at any time.",
     "confirm.restore": "Overwrite the current data with this backup?\n\nThe current state is saved first, so this step can itself be undone.",
     "toast.created": "Created", "toast.saved": "Saved", "toast.deleted": "Deleted",
-    "toast.duped": "Duplicated", "toast.patched": "Patch applied — restart Cherry Studio",
+    "toast.duped": "Duplicated", "dup.suffix": " copy", "toast.patched": "Patch applied — restart Cherry Studio",
     "toast.reverted": "Patch reverted", "toast.restored": "Restored",
     "toast.asarSaved": "Saved — runtime list refreshed", "toast.rescanned": "Rescanned",
     "err.nameEmpty": "Name must not be empty", "err.modelRequired": "Please choose a model",
@@ -429,7 +429,7 @@ function renderAgents(list) {
       <td class="mono">${esc(a.orderKey)}</td>
       <td class="row end">
         <button class="ghost" onclick='openEdit(${JSON.stringify(a.id)})'>${esc(t("btn.edit"))}</button>
-        <button class="ghost" onclick='dupAgent(${JSON.stringify(a.id)})'>${esc(t("btn.dup"))}</button>
+        <button class="ghost" onclick='dupAgent(${JSON.stringify(a.id)}, ${JSON.stringify(a.name)})'>${esc(t("btn.dup"))}</button>
         <button class="ghost danger" onclick='delAgent(${JSON.stringify(a.id)}, ${JSON.stringify(a.name)})'>${esc(t("btn.del"))}</button>
       </td>
     </tr>`).join("") + `</tbody></table>`;
@@ -575,9 +575,12 @@ $("#agentForm").addEventListener("submit", async e => {
 
 /* ============================ 操作 ============================ */
 
-async function dupAgent(id) {
-  try { await api("POST", "/api/agents/" + id + "/duplicate", {}); toast(t("toast.duped"), "ok"); loadAll(); }
-  catch (e) { toast(e.message, "err"); }
+async function dupAgent(id, name) {
+  // 默认名在界面算好再发出去——后端不知道当前语言，写死会中英混用
+  try {
+    await api("POST", "/api/agents/" + id + "/duplicate", { name: name + t("dup.suffix") });
+    toast(t("toast.duped"), "ok"); loadAll();
+  } catch (e) { toast(e.message, "err"); }
 }
 
 async function delAgent(id, name) {

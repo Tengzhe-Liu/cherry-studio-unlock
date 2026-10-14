@@ -190,7 +190,7 @@ func (s *Server) restoreBackup(r *http.Request) (any, error) {
 func (s *Server) patchState(*http.Request) (any, error) {
 	p := s.svc.Install().AsarPath
 	if p == "" {
-		return patch.State{Reason: "没有找到 app.asar"}, nil
+		return patch.State{Reason: i18n.T(s.svc.Lang(), "err.asarNotFound")}, nil
 	}
 	return patch.Inspect(p, s.svc.Lang())
 }

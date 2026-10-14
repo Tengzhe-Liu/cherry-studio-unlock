@@ -280,7 +280,7 @@ func (d *DB) SetDeleted(id string, deleted bool) error {
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
-		return fmt.Errorf("找不到 Agent: %s", id)
+		return i18n.E("err.agentNotFound", id)
 	}
 	return nil
 }
@@ -293,7 +293,7 @@ func (d *DB) DeleteAgent(id string) error {
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
-		return fmt.Errorf("找不到 Agent: %s", id)
+		return i18n.E("err.agentNotFound", id)
 	}
 	return nil
 }
@@ -305,7 +305,7 @@ func (d *DB) DuplicateAgent(id, newName string) (*Agent, error) {
 		return nil, err
 	}
 	if strings.TrimSpace(newName) == "" {
-		newName = src.Name + " 副本"
+		newName = src.Name + " (2)"
 	}
 
 	cfgRaw, err := encodeConfig(src.Configuration)
