@@ -19,6 +19,8 @@ import (
 	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
 	"github.com/cherry-tools/cherry-agent-manager/internal/patch"
 	"github.com/cherry-tools/cherry-agent-manager/internal/service"
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 //go:embed assets
@@ -86,7 +88,7 @@ func (s *Server) wrap(h handler) http.HandlerFunc {
 			} else {
 				w.WriteHeader(http.StatusBadRequest)
 			}
-			writeJSON(w, apiError{Error: err.Error(), Kind: kind})
+			writeJSON(w, apiError{Error: i18n.Text(s.svc.Lang(), err), Kind: kind})
 			return
 		}
 		writeJSON(w, data)
@@ -105,7 +107,7 @@ func decodeBody(r *http.Request, v any) error {
 	defer r.Body.Close()
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(v); err != nil {
-		return fmt.Errorf("请求体解析失败: %w", err)
+		return i18n.Wrap("err.badBody", err)
 	}
 	return nil
 }
@@ -126,12 +128,21 @@ func (s *Server) rescan(*http.Request) (any, error) {
 func (s *Server) setConfig(r *http.Request) (any, error) {
 	var body struct {
 		AsarPath string `json:"asarPath"`
+		Lang     string `json:"lang"`
 	}
 	if err := decodeBody(r, &body); err != nil {
 		return nil, err
 	}
-	if err := s.svc.SetAsarPath(body.AsarPath); err != nil {
-		return nil, err
+	// 两个字段都是可选的：只切语言时不传路径，只改路径时不传语言
+	if body.Lang != "" {
+		if err := s.svc.SetLang(i18n.Parse(body.Lang)); err != nil {
+			return nil, err
+		}
+	}
+	if body.AsarPath != "" {
+		if err := s.svc.SetAsarPath(body.AsarPath); err != nil {
+			return nil, err
+		}
 	}
 	return s.svc.Status()
 }
@@ -181,7 +192,7 @@ func (s *Server) patchState(*http.Request) (any, error) {
 	if p == "" {
 		return patch.State{Reason: "没有找到 app.asar"}, nil
 	}
-	return patch.Inspect(p)
+	return patch.Inspect(p, s.svc.Lang())
 }
 
 func (s *Server) patchApply(*http.Request) (any, error) {
@@ -190,9 +201,9 @@ func (s *Server) patchApply(*http.Request) (any, error) {
 	}
 	p := s.svc.Install().AsarPath
 	if p == "" {
-		return nil, fmt.Errorf("没有找到 app.asar，无法打补丁")
+		return nil, i18n.E("err.asarNotFound")
 	}
-	return patch.Apply(p, s.svc.Install().DataDir)
+	return patch.Apply(p, s.svc.Install().DataDir, s.svc.Lang())
 }
 
 func (s *Server) patchRevert(*http.Request) (any, error) {
@@ -201,7 +212,7 @@ func (s *Server) patchRevert(*http.Request) (any, error) {
 	}
 	p := s.svc.Install().AsarPath
 	if p == "" {
-		return nil, fmt.Errorf("没有找到 app.asar")
+		return nil, i18n.E("err.asarNotFound")
 	}
 	return map[string]bool{"ok": true}, patch.Revert(p, s.svc.Install().DataDir)
 }
@@ -221,32 +232,38 @@ func (s *Server) Serve(port int) (string, error) {
 	return "http://" + addr, nil
 }
 
-// StatusText 给终端输出一段人类可读的自检摘要。
+// StatusText 给终端输出一段人类可读的自检摘要，按当前语言渲染。
 func StatusText(svc *service.Service) string {
+	lang := svc.Lang()
 	st, err := svc.Status()
 	if err != nil {
-		return fmt.Sprintf("读取状态失败: %v", err)
+		return i18n.T(lang, "cli.statusFailed", i18n.Text(lang, err))
 	}
 	var b strings.Builder
 	ins := st.Install
-	fmt.Fprintf(&b, "Cherry Studio 数据目录 : %s\n", ins.DataDir)
+	fmt.Fprintln(&b, i18n.T(lang, "cli.dataDir", ins.DataDir))
 	if ins.Version != "" {
-		fmt.Fprintf(&b, "程序版本               : %s\n", ins.Version)
+		fmt.Fprintln(&b, i18n.T(lang, "cli.version", ins.Version))
 	}
 	if ins.AsarPath != "" {
-		fmt.Fprintf(&b, "app.asar               : %s\n", ins.AsarPath)
+		fmt.Fprintln(&b, i18n.T(lang, "cli.asar", ins.AsarPath))
 	}
-	fmt.Fprintf(&b, "正在运行               : %v\n", st.Running)
-	fmt.Fprintf(&b, "已有 Agent             : %d\n", st.AgentCount)
+	running := i18n.T(lang, "cli.runningNo")
+	if st.Running {
+		running = i18n.T(lang, "cli.runningYes")
+	}
+	fmt.Fprintln(&b, i18n.T(lang, "cli.running", running))
+	fmt.Fprintln(&b, i18n.T(lang, "cli.agentCount", st.AgentCount))
 	for _, c := range st.RuntimeChecks {
 		mark := "✔"
 		if c.Hidden {
 			mark = "✖"
 		}
-		fmt.Fprintf(&b, "  %s %-16s %s\n", mark, c.Type, c.Verdict)
+		fmt.Fprintf(&b, "  %s %-16s %s", mark, c.Type, c.Verdict)
+		fmt.Fprintln(&b)
 	}
 	if st.ScanError != "" {
-		fmt.Fprintf(&b, "扫描提示               : %s\n", st.ScanError)
+		fmt.Fprintln(&b, i18n.T(lang, "cli.scanHint", st.ScanError))
 	}
 	return b.String()
 }

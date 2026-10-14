@@ -2,7 +2,6 @@ package cherry
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 // Install 描述一份本机 Cherry Studio 安装。
@@ -30,11 +31,16 @@ type Install struct {
 	// AsarCandidates 是所有被发现的 app.asar 路径，供用户确认。
 	AsarCandidates []string `json:"asarCandidates"`
 	// Warnings 记录探测过程中的不确定项，UI 上要如实展示。
+	// 内容由 warningMsgs 按当前语言渲染而来，见 RenderWarnings。
 	Warnings []string `json:"warnings"`
+
+	// warningMsgs 保存的是文案 key 而不是成品句子，
+	// 这样切换界面语言后不必重新探测就能换一种语言显示。
+	warningMsgs []i18n.Msg
 }
 
 // errNotInstalled 表示本机没找到 Cherry Studio。
-var errNotInstalled = errors.New("没有找到 Cherry Studio 的数据目录")
+var errNotInstalled = i18n.E("err.dataDirMissing")
 
 // LocateDataDir 按操作系统惯例定位用户数据目录。
 func LocateDataDir() (string, error) {
@@ -66,7 +72,7 @@ func LocateDataDir() (string, error) {
 		}
 	}
 	if len(candidates) > 0 {
-		return "", fmt.Errorf("%w（已尝试：%s）", errNotInstalled, strings.Join(candidates, ", "))
+		return "", i18n.E("err.dataDirTriedPaths", strings.Join(candidates, ", "))
 	}
 	return "", errNotInstalled
 }
@@ -275,7 +281,7 @@ func Locate() (*Install, error) {
 	ins.AgentsDir = filepath.Join(dataDir, "Agents")
 
 	if !fileExists(ins.DBPath) {
-		return nil, fmt.Errorf("找到了数据目录但没有数据库文件：%s", ins.DBPath)
+		return nil, i18n.E("err.dbMissing", ins.DBPath)
 	}
 
 	// app.asar 的查找顺序，按可靠性从高到低：
@@ -318,8 +324,7 @@ func Locate() (*Install, error) {
 		}
 	}
 	if ins.AsarPath == "" {
-		ins.Warnings = append(ins.Warnings,
-			"没有自动找到 app.asar。数据库相关的功能仍然可用，但「运行时扫描」和「打补丁」需要你在界面上手动指定路径。")
+		ins.AddWarning("warn.asarNotFound")
 	} else {
 		ins.Version = readAsarVersion(ins.AsarPath)
 	}
@@ -333,6 +338,19 @@ func Locate() (*Install, error) {
 // 用户用 --asar 手动指定路径时，用它把信息补齐。
 func DescribeAsar(asarPath string) (appRoot, version string) {
 	return filepath.Dir(filepath.Dir(asarPath)), readAsarVersion(asarPath)
+}
+
+// AddWarning 记录一条提示（存 key，不存成品句子）。
+func (i *Install) AddWarning(key string, args ...any) {
+	i.warningMsgs = append(i.warningMsgs, i18n.Msg{Key: key, Args: args})
+}
+
+// RenderWarnings 按给定语言生成 Warnings 字段，供界面直接展示。
+func (i *Install) RenderWarnings(l i18n.Lang) {
+	i.Warnings = i.Warnings[:0]
+	for _, m := range i.warningMsgs {
+		i.Warnings = append(i.Warnings, m.Text(l))
+	}
 }
 
 func readAsarVersion(asarPath string) string {

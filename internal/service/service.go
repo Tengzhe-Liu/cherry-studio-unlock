@@ -6,7 +6,6 @@
 package service
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,20 +16,26 @@ import (
 	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
 	"github.com/cherry-tools/cherry-agent-manager/internal/patch"
 	"github.com/cherry-tools/cherry-agent-manager/internal/store"
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 // ErrRunning 表示 Cherry Studio 正在运行，写操作被拒绝。
 type ErrRunning struct{}
 
-func (ErrRunning) Error() string {
-	return "Cherry Studio 正在运行。请先完全退出它（包括右下角托盘图标 → 退出），再执行写操作。"
-}
+func (ErrRunning) Error() string { return i18n.T(i18n.Zh, "err.running") }
+
+// Msg 让展示层能按当前语言渲染。
+func (ErrRunning) Msg() i18n.Msg { return i18n.Msg{Key: "err.running"} }
 
 // Service 是一次会话内的工具实例。
 type Service struct {
 	mu      sync.Mutex
 	install *cherry.Install
 	db      *store.DB
+	// lang 是当前界面语言。后端返回的文案（状态判定、错误）都按它渲染，
+	// 否则英文界面里会突然冒出中文。
+	lang i18n.Lang
 
 	scanCache    *cherry.ScanResult
 	scanCachedAt time.Time
@@ -38,13 +43,35 @@ type Service struct {
 
 const scanTTL = 5 * time.Minute
 
-// New 打开数据库并绑定安装信息。
-func New(install *cherry.Install) (*Service, error) {
+// New 打开数据库并绑定安装信息。lang 为初始界面语言。
+func New(install *cherry.Install, lang i18n.Lang) (*Service, error) {
 	db, err := store.Open(install.DBPath)
 	if err != nil {
 		return nil, err
 	}
-	return &Service{install: install, db: db}, nil
+	return &Service{install: install, db: db, lang: lang}, nil
+}
+
+// Lang 返回当前界面语言。
+func (s *Service) Lang() i18n.Lang {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lang
+}
+
+// SetLang 切换界面语言并持久化，下次启动沿用。
+func (s *Service) SetLang(l i18n.Lang) error {
+	s.mu.Lock()
+	s.lang = l
+	dir := s.install.DataDir
+	s.mu.Unlock()
+
+	cfg := cherry.LoadConfig(dir)
+	if cfg.Lang == string(l) {
+		return nil
+	}
+	cfg.Lang = string(l)
+	return cherry.SaveConfig(dir, cfg)
 }
 
 // Close 关闭数据库。
@@ -93,12 +120,11 @@ func (s *Service) scanLocked(force bool) (*cherry.ScanResult, error) {
 // scanAsarPath 扫描任意一个 app.asar。独立成函数，方便在改路径前先试扫一遍。
 func scanAsarPath(path string) (*cherry.ScanResult, error) {
 	if path == "" {
-		return nil, fmt.Errorf("没有找到 app.asar。请先在本工具里指定它的路径" +
-			"（通常在 <Cherry Studio 安装目录>/resources/app.asar）")
+		return nil, i18n.E("err.asarNotFound")
 	}
 	a, err := asar.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("无法读取 %s：%w", path, err)
+		return nil, i18n.Wrap("err.asarUnreadable", err, path)
 	}
 	defer a.Close()
 	return cherry.ScanRuntimes(a)
@@ -109,18 +135,18 @@ func scanAsarPath(path string) (*cherry.ScanResult, error) {
 func (s *Service) SetAsarPath(path string) error {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return fmt.Errorf("路径不能为空")
+		return i18n.E("err.asarEmpty")
 	}
 	if st, err := os.Stat(path); err != nil || st.IsDir() {
-		return fmt.Errorf("找不到文件：%s", path)
+		return i18n.E("err.asarNoSuchFile", path)
 	}
 
 	res, err := scanAsarPath(path)
 	if err != nil {
-		return fmt.Errorf("这个文件打不开或不是有效的 app.asar：%w", err)
+		return i18n.Wrap("err.asarInvalid", err)
 	}
 	if len(res.Runtimes) == 0 {
-		return fmt.Errorf("能打开 %s，但没从中认出任何 Agent 运行时——它可能不是 Cherry Studio 的 app.asar", path)
+		return i18n.E("err.asarNoRuntimes", path)
 	}
 
 	s.mu.Lock()
@@ -169,18 +195,18 @@ func (s *Service) Status() (*Status, error) {
 	}
 
 	if res, err := s.Scan(false); err != nil {
-		st.ScanError = err.Error()
+		st.ScanError = i18n.Text(s.lang, err)
 	} else {
 		st.Scan = res
 		for _, r := range res.Runtimes {
 			check := RuntimeCheck{Type: r.Type, Label: r.Label, Hidden: r.Hidden}
 			switch {
 			case !r.Supported:
-				check.Verdict = "该版本未内置此运行时"
+				check.Verdict = i18n.T(s.lang, "runtime.verdict.unsupported")
 			case r.Hidden:
-				check.Verdict = "已内置，但新建界面里选不到——本工具可以解锁"
+				check.Verdict = i18n.T(s.lang, "runtime.verdict.hidden")
 			default:
-				check.Verdict = "已内置且可直接新建"
+				check.Verdict = i18n.T(s.lang, "runtime.verdict.available")
 			}
 			st.RuntimeChecks = append(st.RuntimeChecks, check)
 		}
@@ -199,11 +225,14 @@ func (s *Service) Status() (*Status, error) {
 	st.Backups = backups
 
 	if s.install.AsarPath != "" {
-		ps, err := patch.Inspect(s.install.AsarPath)
+		ps, err := patch.Inspect(s.install.AsarPath, s.lang)
 		if err == nil {
 			st.PatchState = ps
 		}
 	}
+
+	// 提示按当前语言渲染（存的是 key，所以切语言后不需要重新探测）
+	st.Install.RenderWarnings(s.lang)
 	return st, nil
 }
 
@@ -244,7 +273,7 @@ func validatePermissionMode(runtimeType, mode string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("运行时 %s 不支持权限模式 %q，可用：%v", runtimeType, mode, allowed)
+	return i18n.E("err.permissionMode", runtimeType, mode, allowed)
 }
 
 // CreateAgent 新建 Agent。顺序：拒绝运行中 → 校验运行时 → 校验权限模式 → 备份 → 写库 → 建数据目录。
@@ -261,7 +290,7 @@ func (s *Service) CreateAgent(in AgentInput) (*store.Agent, error) {
 
 	if _, err := cherry.CreateBackup(s.install.DataDir, "before-create-agent",
 		s.dbPathWithSidecars()...); err != nil {
-		return nil, fmt.Errorf("备份失败，已中止（未做任何修改）: %w", err)
+		return nil, i18n.Wrap("err.backupFailed", err)
 	}
 
 	created, err := s.db.CreateAgent(store.CreateInput{
@@ -281,7 +310,7 @@ func (s *Service) CreateAgent(in AgentInput) (*store.Agent, error) {
 	// 与 Cherry Studio 新建 Agent 时的目录结构保持一致。
 	// 失败不算致命（App 会在需要时自己建），但要让用户知道。
 	if err := s.ensureAgentDir(created.ID); err != nil {
-		return created, fmt.Errorf("Agent 已创建，但数据目录建立失败: %w", err)
+		return created, i18n.Wrap("err.agentDir", err)
 	}
 	return created, nil
 }
@@ -290,16 +319,14 @@ func (s *Service) CreateAgent(in AgentInput) (*store.Agent, error) {
 // 这是本工具最重要的一道校验：宁可拒绝，也不要创建一个永远跑不起来的 Agent。
 func (s *Service) assertRuntimeUsable(runtimeType string, allowUnverified bool) error {
 	if runtimeType == "" {
-		return fmt.Errorf("必须指定运行时类型")
+		return i18n.E("err.typeRequired")
 	}
 	res, err := s.Scan(false)
 	if err != nil {
 		if allowUnverified {
 			return nil // 用户已明确选择跳过校验
 		}
-		return fmt.Errorf("无法确认运行时是否真的内置：%v\n"+
-			"可以先在本工具的「环境」一栏指定 app.asar 的路径（通常在 "+
-			"<Cherry Studio 安装目录>/resources/app.asar）再重试。", err)
+		return i18n.E("err.verifyRuntime", err)
 	}
 	info, ok := res.FindRuntime(runtimeType)
 	if !ok {
@@ -307,10 +334,10 @@ func (s *Service) assertRuntimeUsable(runtimeType string, allowUnverified bool) 
 		for _, r := range res.Runtimes {
 			known = append(known, r.Type)
 		}
-		return fmt.Errorf("当前 Cherry Studio 版本不包含运行时 %q。已识别到的运行时：%v", runtimeType, known)
+		return i18n.E("err.runtimeMissing", runtimeType, known)
 	}
 	if !info.Supported {
-		return fmt.Errorf("运行时 %q 未被正确实现，拒绝创建", runtimeType)
+		return i18n.E("err.runtimeImpl", runtimeType)
 	}
 	return nil
 }
@@ -355,7 +382,7 @@ func (s *Service) UpdateAgent(id string, in AgentInput) (*store.Agent, error) {
 	}
 	if _, err := cherry.CreateBackup(s.install.DataDir, "before-update-agent",
 		s.dbPathWithSidecars()...); err != nil {
-		return nil, fmt.Errorf("备份失败，已中止: %w", err)
+		return nil, i18n.Wrap("err.backupFailed", err)
 	}
 
 	up := store.UpdateInput{
@@ -377,14 +404,14 @@ func (s *Service) DuplicateAgent(id, newName string) (*store.Agent, error) {
 	}
 	if _, err := cherry.CreateBackup(s.install.DataDir, "before-duplicate-agent",
 		s.dbPathWithSidecars()...); err != nil {
-		return nil, fmt.Errorf("备份失败，已中止: %w", err)
+		return nil, i18n.Wrap("err.backupFailed", err)
 	}
 	dup, err := s.db.DuplicateAgent(id, newName)
 	if err != nil {
 		return nil, err
 	}
 	if err := s.ensureAgentDir(dup.ID); err != nil {
-		return dup, fmt.Errorf("已复制，但数据目录建立失败: %w", err)
+		return dup, i18n.Wrap("err.agentDir", err)
 	}
 	return dup, nil
 }
@@ -396,7 +423,7 @@ func (s *Service) DeleteAgent(id string) error {
 	}
 	if _, err := cherry.CreateBackup(s.install.DataDir, "before-delete-agent",
 		s.dbPathWithSidecars()...); err != nil {
-		return fmt.Errorf("备份失败，已中止: %w", err)
+		return i18n.Wrap("err.backupFailed", err)
 	}
 	return s.db.DeleteAgent(id)
 }
@@ -426,7 +453,7 @@ func (s *Service) RestoreBackup(backupID string) error {
 			return s.reopen()
 		}
 	}
-	return fmt.Errorf("找不到备份: %s", backupID)
+	return i18n.E("err.backupNotFound", backupID)
 }
 
 func (s *Service) reopen() error {

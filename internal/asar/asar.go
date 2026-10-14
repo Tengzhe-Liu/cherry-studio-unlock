@@ -18,14 +18,14 @@ package asar
 import (
 	"encoding/binary"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 // headerPickleSize 是头部 pickle 之前的固定 8 字节（两个 uint32）。
@@ -63,41 +63,41 @@ func Open(path string) (*Archive, error) {
 	var sizeBuf [headerPickleSize]byte
 	if _, err := f.ReadAt(sizeBuf[:], 0); err != nil {
 		f.Close()
-		return nil, fmt.Errorf("读取 asar 头部失败: %w", err)
+		return nil, i18n.Wrap("err.asarReadHeader", err)
 	}
 	if payloadSize := binary.LittleEndian.Uint32(sizeBuf[0:4]); payloadSize != 4 {
 		f.Close()
-		return nil, fmt.Errorf("不是有效的 asar 文件（头部标记为 %d，期望 4）", payloadSize)
+		return nil, i18n.E("err.asarBadMagic", payloadSize)
 	}
 	headerSize := binary.LittleEndian.Uint32(sizeBuf[4:8])
 	if headerSize == 0 || headerSize > 1<<30 {
 		f.Close()
-		return nil, fmt.Errorf("asar 头部长度异常: %d", headerSize)
+		return nil, i18n.E("err.asarBadHeaderSize", headerSize)
 	}
 
 	headerBuf := make([]byte, headerSize)
 	if _, err := f.ReadAt(headerBuf, headerPickleSize); err != nil {
 		f.Close()
-		return nil, fmt.Errorf("读取 asar 目录树失败: %w", err)
+		return nil, i18n.Wrap("err.asarReadTree", err)
 	}
 	if len(headerBuf) < headerPickleSize {
 		f.Close()
-		return nil, errors.New("asar 头部长度不足以容纳 pickle 前缀")
+		return nil, i18n.E("err.asarHeaderTooShort")
 	}
 	jsonLen := binary.LittleEndian.Uint32(headerBuf[4:8])
 	if int64(8+jsonLen) > int64(len(headerBuf)) {
 		f.Close()
-		return nil, fmt.Errorf("asar 目录树长度越界: jsonLen=%d headerLen=%d", jsonLen, len(headerBuf))
+		return nil, i18n.E("err.asarTreeOOB", jsonLen, len(headerBuf))
 	}
 
 	var root Entry
 	if err := json.Unmarshal(headerBuf[8:8+jsonLen], &root); err != nil {
 		f.Close()
-		return nil, fmt.Errorf("解析 asar 目录树失败: %w", err)
+		return nil, i18n.Wrap("err.asarParseTree", err)
 	}
 	if root.Files == nil {
 		f.Close()
-		return nil, errors.New("asar 目录树缺少 files 节点")
+		return nil, i18n.E("err.asarNoFilesNode")
 	}
 
 	return &Archive{
@@ -149,21 +149,21 @@ func (a *Archive) Stat(p string) (*Entry, bool) {
 func (a *Archive) ReadFile(p string) ([]byte, error) {
 	e, ok := a.Stat(p)
 	if !ok {
-		return nil, fmt.Errorf("asar 中不存在: %s", p)
+		return nil, i18n.E("err.asarEntryMissing", p)
 	}
 	if e.IsDir() {
-		return nil, fmt.Errorf("%s 是目录", p)
+		return nil, i18n.E("err.asarIsDir", p)
 	}
 	if e.Unpacked {
 		return os.ReadFile(filepath.Join(a.unpacked, filepath.FromSlash(strings.Trim(p, "/"))))
 	}
 	off, err := strconv.ParseInt(e.Offset, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("%s 的 offset 非法 (%q): %w", p, e.Offset, err)
+		return nil, i18n.Wrap("err.asarBadOffset", err, p, e.Offset)
 	}
 	buf := make([]byte, e.Size)
 	if _, err := a.f.ReadAt(buf, a.baseOffset+off); err != nil {
-		return nil, fmt.Errorf("读取 %s 失败: %w", p, err)
+		return nil, i18n.Wrap("err.asarReadFile", err, p)
 	}
 	return buf, nil
 }

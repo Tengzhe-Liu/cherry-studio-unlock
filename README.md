@@ -61,11 +61,21 @@ var RUNTIMES = Object.keys(AGENT_RUNTIME_CAPABILITIES).filter((runtime) => runti
 ```bash
 cherry-agent-manager                  # 自动探测环境并打开界面
 cherry-agent-manager --status         # 只打印自检结果
+cherry-agent-manager --lang en        # 以英文界面启动
 cherry-agent-manager --port 8765      # 指定端口
 cherry-agent-manager --no-open        # 不自动开浏览器
 cherry-agent-manager --data-dir DIR   # 手动指定数据目录
 cherry-agent-manager --asar FILE      # 手动指定 app.asar
 ```
+
+### 界面语言
+
+界面右上角可以在 **中文 / English** 之间切换，选择会被记住。
+切换是**整体生效**的：UI 文案、运行时状态判定、以及后端返回的错误信息都会跟着切换，
+不会出现"界面是英文、报错是中文"的割裂。
+
+命令行同样支持：`--lang zh|en`。未指定时的优先级是
+**命令行参数 → 配置文件 → 环境变量（`LANG` / `LC_ALL`）→ 中文**。
 
 ### 从源码构建
 

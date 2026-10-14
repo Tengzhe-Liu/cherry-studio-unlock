@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	_ "modernc.org/sqlite" // 纯 Go 实现，不需要 cgo
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 // DB 是一个已打开的 Cherry Studio 数据库。
@@ -27,16 +29,35 @@ var requiredColumns = []string{
 	"order_key", "created_at", "updated_at", "deleted_at",
 }
 
-// ErrSchemaMismatch 表示数据库结构与预期不符。
+// SchemaError 表示数据库结构与预期不符。
 type SchemaError struct {
 	Path    string
 	Missing []string
+	// NoTable 表示连 agent 表本身都没有（全新空库）。
+	NoTable bool
+}
+
+func (e *SchemaError) key() string {
+	if e.NoTable {
+		return "err.schemaNoTable"
+	}
+	return "err.schemaMismatch"
+}
+
+func (e *SchemaError) args() []any {
+	if e.NoTable {
+		return []any{e.Path}
+	}
+	return []any{e.Path, strings.Join(e.Missing, ", ")}
 }
 
 func (e *SchemaError) Error() string {
-	return fmt.Sprintf("数据库结构不匹配（%s）：缺少列 %s。"+
-		"这通常意味着 Cherry Studio 换了表结构，请升级本工具或改用「补丁」后端。",
-		e.Path, strings.Join(e.Missing, ", "))
+	return i18n.T(i18n.Zh, e.key(), e.args()...)
+}
+
+// Msg 让展示层能按当前语言重新渲染。
+func (e *SchemaError) Msg() i18n.Msg {
+	return i18n.Msg{Key: e.key(), Args: e.args()}
 }
 
 // Open 打开数据库并校验表结构。
@@ -44,11 +65,11 @@ func Open(path string) (*DB, error) {
 	dsn := fmt.Sprintf("file:%s?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)", path)
 	sqldb, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("打开数据库失败: %w", err)
+		return nil, i18n.Wrap("err.openDb", err)
 	}
 	if err := sqldb.Ping(); err != nil {
 		sqldb.Close()
-		return nil, fmt.Errorf("连接数据库失败: %w", err)
+		return nil, i18n.Wrap("err.pingDb", err)
 	}
 	db := &DB{sql: sqldb, path: path}
 	if err := db.verifySchema(); err != nil {
@@ -67,7 +88,7 @@ func (d *DB) Path() string { return d.path }
 func (d *DB) verifySchema() error {
 	rows, err := d.sql.Query("PRAGMA table_info(agent)")
 	if err != nil {
-		return fmt.Errorf("读取 agent 表结构失败: %w", err)
+		return i18n.Wrap("err.readSchema", err)
 	}
 	defer rows.Close()
 

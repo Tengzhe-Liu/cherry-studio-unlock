@@ -4,6 +4,7 @@
 //
 //	cherry-agent-manager                 自动探测环境并打开界面
 //	cherry-agent-manager --status        只在终端打印自检结果后退出
+//	cherry-agent-manager --lang en       以英文界面启动
 //	cherry-agent-manager --port 8765     指定端口
 //	cherry-agent-manager --no-open       不自动打开浏览器
 //	cherry-agent-manager --data-dir DIR  手动指定 Cherry Studio 数据目录
@@ -19,31 +20,53 @@ import (
 	"runtime"
 
 	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 	"github.com/cherry-tools/cherry-agent-manager/internal/service"
 	"github.com/cherry-tools/cherry-agent-manager/internal/web"
 )
 
 func main() {
 	var (
-		dataDir    = flag.String("data-dir", "", "手动指定 Cherry Studio 数据目录")
-		asarPath   = flag.String("asar", "", "手动指定 app.asar 路径")
-		port       = flag.Int("port", 0, "监听端口，0 表示自动选择")
-		noOpen     = flag.Bool("no-open", false, "不自动打开浏览器")
-		statusOnly = flag.Bool("status", false, "只打印自检结果后退出")
+		dataDir    = flag.String("data-dir", "", "手动指定数据目录 / data directory")
+		asarPath   = flag.String("asar", "", "手动指定 app.asar / path to app.asar")
+		port       = flag.Int("port", 0, "监听端口，0 为自动 / listen port, 0 = auto")
+		noOpen     = flag.Bool("no-open", false, "不自动打开浏览器 / do not open a browser")
+		statusOnly = flag.Bool("status", false, "只打印自检结果 / print self-check and exit")
+		langFlag   = flag.String("lang", "", "界面语言 zh|en / UI language")
 	)
 	flag.Parse()
 
-	if err := run(*dataDir, *asarPath, *port, *noOpen, *statusOnly); err != nil {
-		fmt.Fprintln(os.Stderr, "\n出错了："+err.Error())
+	lang := resolveLang(*langFlag, *dataDir)
+	if err := run(*dataDir, *asarPath, *port, *noOpen, *statusOnly, lang); err != nil {
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, i18n.T(lang, "cli.errPrefix", i18n.Text(lang, err)))
 		os.Exit(1)
 	}
 }
 
-func run(dataDir, asarPath string, port int, noOpen, statusOnly bool) error {
+// resolveLang 决定界面语言，优先级：命令行参数 > 配置文件 > 环境变量 > 中文。
+func resolveLang(flagVal, dataDir string) i18n.Lang {
+	if flagVal != "" {
+		return i18n.Parse(flagVal)
+	}
+	dir := dataDir
+	if dir == "" {
+		if d, err := cherry.LocateDataDir(); err == nil {
+			dir = d
+		}
+	}
+	if dir != "" {
+		if cfg := cherry.LoadConfig(dir); cfg.Lang != "" {
+			return i18n.Parse(cfg.Lang)
+		}
+	}
+	return i18n.Detect()
+}
+
+func run(dataDir, asarPath string, port int, noOpen, statusOnly bool, lang i18n.Lang) error {
 	install, err := cherry.Locate()
 	if err != nil && dataDir == "" {
-		return fmt.Errorf("%w\n\n可以用 --data-dir 手动指定，例如：\n"+
-			"  cherry-agent-manager --data-dir \"%%APPDATA%%\\CherryStudio\\Data\"", err)
+		return i18n.E("cli.notInstalledHint")
 	}
 	if install == nil {
 		install = &cherry.Install{}
@@ -60,33 +83,33 @@ func run(dataDir, asarPath string, port int, noOpen, statusOnly bool) error {
 		install.AppRoot, install.Version = cherry.DescribeAsar(install.AsarPath)
 	}
 	if !fileOK(install.DBPath) {
-		return fmt.Errorf("没有找到数据库文件：%s", install.DBPath)
+		return i18n.E("cli.noDataDir", install.DBPath)
 	}
 
 	// 记住这次定位到的 app.asar。Cherry Studio 必须关闭才能写数据，而关闭后就无法
 	// 从进程反查安装目录了——装在自定义目录的用户下次就会找不到它。
 	if install.AsarPath != "" {
 		if err := cherry.RememberAsarPath(install.DataDir, install.AsarPath); err != nil {
-			install.Warnings = append(install.Warnings,
-				"找到 app.asar 但没能记住路径（"+err.Error()+"）")
+			install.AddWarning("err.rememberFailed", err)
 		}
 	}
 
-	svc, err := service.New(install)
+	svc, err := service.New(install, lang)
 	if err != nil {
 		return err
 	}
 	defer svc.Close()
 
 	if statusOnly {
-		fmt.Print("\n" + web.StatusText(svc))
+		fmt.Println()
+		fmt.Print(web.StatusText(svc))
 		return nil
 	}
 
 	srv := web.New(svc)
 	addr, err := srv.Serve(port)
 	if err != nil {
-		return fmt.Errorf("启动本地服务失败: %w", err)
+		return i18n.Wrap("cli.serveFailed", err)
 	}
 
 	fmt.Println()
@@ -94,13 +117,13 @@ func run(dataDir, asarPath string, port int, noOpen, statusOnly bool) error {
 	fmt.Println("  ─────────────────────────────────────────────")
 	fmt.Print(indent(web.StatusText(svc), "  "))
 	fmt.Println()
-	fmt.Println("  界面地址: " + addr)
-	fmt.Println("  按 Ctrl+C 退出")
+	fmt.Println("  " + i18n.T(lang, "cli.uiAt", addr))
+	fmt.Println("  " + i18n.T(lang, "cli.quit"))
 	fmt.Println()
 
 	if !noOpen {
 		if err := openBrowser(addr); err != nil {
-			fmt.Println("  （没能自动打开浏览器，请手动访问上面的地址）")
+			fmt.Println("  " + i18n.T(lang, "cli.browserFailed"))
 		}
 	}
 

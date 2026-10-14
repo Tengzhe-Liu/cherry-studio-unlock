@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 // backupRootName 是备份目录名。放在用户数据目录下，卸载 Cherry Studio 时不会被误删，
@@ -66,17 +68,17 @@ func CreateBackup(dataDir, reason string, paths ...string) (*Backup, error) {
 			continue // 不存在就跳过
 		}
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return nil, fmt.Errorf("创建备份目录失败: %w", err)
+			return nil, i18n.Wrap("err.backupDir", err)
 		}
 		stored := filepath.Base(src)
 		if err := copyFile(src, filepath.Join(dir, stored)); err != nil {
-			return nil, fmt.Errorf("备份 %s 失败: %w", src, err)
+			return nil, i18n.Wrap("err.backupCopy", err, src)
 		}
 		b.Entries = append(b.Entries, BackupEntry{Original: src, Stored: stored, Size: st.Size()})
 	}
 
 	if len(b.Entries) == 0 {
-		return nil, fmt.Errorf("没有任何文件需要备份")
+		return nil, i18n.E("err.backupNothing")
 	}
 
 	manifest, err := json.MarshalIndent(b, "", "  ")
@@ -84,7 +86,7 @@ func CreateBackup(dataDir, reason string, paths ...string) (*Backup, error) {
 		return nil, err
 	}
 	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), manifest, 0o644); err != nil {
-		return nil, fmt.Errorf("写入备份清单失败: %w", err)
+		return nil, i18n.Wrap("err.backupManifest", err)
 	}
 	return b, nil
 }
@@ -129,13 +131,13 @@ func Restore(dataDir string, b Backup) error {
 	// 先把当前状态存一份，避免用户撤错了无法回头
 	if _, err := CreateBackup(dataDir, "before-restore", originals(b)...); err != nil {
 		// 当前文件可能都不存在（例如刚删过），这不算致命错误
-		fmt.Fprintf(os.Stderr, "提示：撤销前备份当前状态时跳过（%v）\n", err)
+		fmt.Fprintf(os.Stderr, i18n.T(i18n.Detect(), "err.skipCurrentBackup")+"\n", err)
 	}
 
 	for _, e := range b.Entries {
 		src := filepath.Join(b.Dir, e.Stored)
 		if err := copyFile(src, e.Original); err != nil {
-			return fmt.Errorf("恢复 %s 失败: %w", e.Original, err)
+			return i18n.Wrap("err.restoreFailed", err, e.Original)
 		}
 	}
 	return nil

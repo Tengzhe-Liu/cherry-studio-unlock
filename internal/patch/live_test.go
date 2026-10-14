@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
+
 	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
 	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
 )
@@ -47,7 +49,7 @@ func TestPatchRoundTrip(t *testing.T) {
 	}
 
 	// --- 1. 打补丁前 ---
-	st, err := Inspect(asarPath)
+	st, err := Inspect(asarPath, i18n.Zh)
 	if err != nil {
 		t.Fatalf("Inspect 失败: %v", err)
 	}
@@ -65,7 +67,7 @@ func TestPatchRoundTrip(t *testing.T) {
 	t.Logf("打补丁前被隐藏: %v", hiddenBefore)
 
 	// --- 2. 打补丁 ---
-	after, err := Apply(asarPath, dataDir)
+	after, err := Apply(asarPath, dataDir, i18n.Zh)
 	if err != nil {
 		t.Fatalf("打补丁失败: %v", err)
 	}
@@ -87,7 +89,7 @@ func TestPatchRoundTrip(t *testing.T) {
 	}
 
 	// --- 3. 幂等 ---
-	if _, err := Apply(asarPath, dataDir); err != nil {
+	if _, err := Apply(asarPath, dataDir, i18n.Zh); err != nil {
 		t.Errorf("重复打补丁应当幂等，却报错: %v", err)
 	}
 

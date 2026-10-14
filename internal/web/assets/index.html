@@ -16,11 +16,12 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);
     font:14px/1.6 -apple-system,"Segoe UI",system-ui,"Microsoft YaHei",sans-serif}
-  header{padding:20px 24px 0;max-width:1080px;margin:0 auto}
+  header{padding:20px 24px 0;max-width:1080px;margin:0 auto;
+    display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
   h1{font-size:19px;margin:0 0 4px;font-weight:650}
   h2{font-size:15px;margin:0 0 12px;font-weight:600}
-  .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
-  main{max-width:1080px;margin:0 auto;padding:0 24px 60px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:0}
+  main{max-width:1080px;margin:0 auto;padding:16px 24px 60px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
     padding:16px 18px;margin-bottom:16px}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
@@ -33,6 +34,7 @@
   button:disabled{opacity:.45;cursor:not-allowed}
   button.primary{background:var(--accent);border-color:var(--accent);color:#08111f;font-weight:600}
   button.danger{border-color:#5a2b2b;color:var(--danger)}
+  button.ghost{padding:5px 10px;font-size:12.5px}
   input,select,textarea{font:inherit;width:100%;background:var(--panel2);color:var(--fg);
     border:1px solid var(--line);border-radius:8px;padding:7px 10px}
   textarea{min-height:130px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
@@ -44,7 +46,6 @@
   .pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11.5px;
     border:1px solid var(--line);background:var(--panel2)}
   .pill.ok{color:var(--ok);border-color:#1f4d38}
-  .pill.warn{color:var(--warn);border-color:#5a441f}
   .pill.bad{color:var(--danger);border-color:#5a2b2b}
   .notice{border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:13px;border:1px solid}
   .notice.warn{background:#2a2113;border-color:#5a441f;color:#ffd79a}
@@ -57,6 +58,9 @@
   .row.end{justify-content:flex-end}
   .muted{color:var(--muted)}
   .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  .langbtn{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .langbtn button{border:0;border-radius:0;padding:5px 11px;font-size:12.5px}
+  .langbtn button[aria-pressed="true"]{background:var(--accent);color:#08111f;font-weight:600}
   dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);
     padding:0;width:min(680px,92vw);max-height:88vh}
   dialog::backdrop{background:#000a}
@@ -68,42 +72,48 @@
     padding:10px 14px;border-radius:8px;max-width:420px;font-size:13px;box-shadow:0 6px 24px #0006}
   .toast div.err{border-left-color:var(--danger)}
   .toast div.ok{border-left-color:var(--ok)}
-  details summary{cursor:pointer;color:var(--muted);font-size:13px}
   code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12px}
 </style>
 </head>
 <body>
 <header>
-  <h1>Cherry Agent Manager</h1>
-  <div class="sub">解锁 Cherry Studio 隐藏的 Agent 运行时，并管理已有的 Agent。</div>
+  <div>
+    <h1>Cherry Agent Manager</h1>
+    <div class="sub" data-i18n="app.subtitle"></div>
+  </div>
+  <div class="langbtn" role="group" aria-label="Language">
+    <button id="langZh" onclick="setLang('zh')">中文</button>
+    <button id="langEn" onclick="setLang('en')">EN</button>
+  </div>
 </header>
 <main>
   <div id="alerts"></div>
+
   <div class="card">
-    <h2>环境</h2>
+    <h2 data-i18n="card.env"></h2>
     <div class="grid" id="env"></div>
     <div id="asarBox" style="margin-top:14px"></div>
   </div>
 
   <div class="card">
-    <h2>运行时</h2>
+    <h2 data-i18n="card.runtimes"></h2>
     <div id="runtimes"></div>
     <div id="patchBox" style="margin-top:14px"></div>
   </div>
 
   <div class="card">
     <div class="row" style="justify-content:space-between">
-      <h2 style="margin:0">Agent</h2>
+      <h2 style="margin:0" data-i18n="card.agents"></h2>
       <div class="row">
-        <button onclick="loadAll()">刷新</button>
-        <button class="primary" onclick="openCreate()">新建 Agent</button>
+        <button onclick="loadAll()" data-i18n="btn.refresh"></button>
+        <button class="primary" onclick="openCreate()" data-i18n="btn.newAgent"></button>
       </div>
     </div>
     <div id="agents" style="margin-top:12px"></div>
   </div>
 
   <div class="card">
-    <h2>备份与撤销</h2>
+    <h2 data-i18n="card.backups"></h2>
     <div id="backups"></div>
   </div>
 </main>
@@ -111,35 +121,33 @@
 <dialog id="dlg">
   <form id="agentForm" method="dialog">
     <div class="dlg-body">
-      <h2 id="dlgTitle">新建 Agent</h2>
-      <label><span class="lb">名称</span><input name="name" required placeholder="例如：周报助手"></label>
-      <label><span class="lb">头像（一个 emoji）</span><input name="avatar" placeholder="🧪" maxlength="8"></label>
+      <h2 id="dlgTitle"></h2>
+      <label><span class="lb" data-i18n="field.name"></span><input name="name" required data-i18n-ph="ph.name"></label>
+      <label><span class="lb" data-i18n="field.avatar"></span><input name="avatar" placeholder="🧪" maxlength="8"></label>
       <div id="runtimeError" class="notice err" style="display:none"></div>
-      <label><span class="lb">运行时</span><select name="type" id="typeSel"></select></label>
-      <label><span class="lb">模型</span><select name="model" id="modelSel"></select></label>
-      <label><span class="lb">权限模式</span><select name="permissionMode" id="permSel"></select></label>
-      <label><span class="lb">推理强度</span><select name="reasoningEffort">
-        <option value="">（不设置）</option>
+      <label><span class="lb" data-i18n="field.runtime"></span><select name="type" id="typeSel"></select></label>
+      <label><span class="lb" data-i18n="field.model"></span><select name="model" id="modelSel"></select></label>
+      <label><span class="lb" data-i18n="field.permission"></span><select name="permissionMode" id="permSel"></select></label>
+      <label><span class="lb" data-i18n="field.effort"></span><select name="reasoningEffort">
+        <option value="" data-i18n="effort.unset"></option>
         <option value="default">default</option><option value="low">low</option>
         <option value="medium">medium</option><option value="high">high</option>
         <option value="max" selected>max</option>
       </select></label>
-      <label><span class="lb">系统提示词</span><textarea name="instructions" placeholder="这个 Agent 的角色、规则、输出格式……"></textarea></label>
+      <label><span class="lb" data-i18n="field.instructions"></span><textarea name="instructions" data-i18n-ph="ph.instructions"></textarea></label>
       <label id="skipWrap" style="display:none">
         <span class="lb">
           <input type="checkbox" id="skipCheck" style="width:auto;margin-right:6px">
-          跳过运行时校验（不推荐）
+          <span data-i18n="field.skip"></span>
         </span>
-        <span class="muted" style="font-size:12px">
-          只在确实扫不到 app.asar 时使用。跳过校验意味着可能创建一个在当前版本里跑不起来的 Agent。
-        </span>
+        <span class="muted" style="font-size:12px" data-i18n="field.skipHint"></span>
       </label>
     </div>
     <div class="dlg-foot">
       <span class="muted" id="dlgHint"></span>
       <span class="row">
-        <button type="button" onclick="dlg.close()">取消</button>
-        <button type="submit" class="primary" id="dlgSave">保存</button>
+        <button type="button" onclick="dlg.close()" data-i18n="btn.cancel"></button>
+        <button type="submit" class="primary" id="dlgSave" data-i18n="btn.save"></button>
       </span>
     </div>
   </form>
@@ -148,8 +156,148 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/* ============================ 国际化 ============================ */
+
+const DICT = {
+  zh: {
+    "app.subtitle": "解锁 Cherry Studio 隐藏的 Agent 运行时，并管理已有的 Agent。",
+    "card.env": "环境", "card.runtimes": "运行时", "card.agents": "Agent", "card.backups": "备份与撤销",
+    "btn.refresh": "刷新", "btn.newAgent": "新建 Agent", "btn.cancel": "取消", "btn.save": "保存",
+    "btn.edit": "编辑", "btn.dup": "复制", "btn.del": "删除", "btn.restore": "恢复此备份",
+    "btn.saveScan": "保存并扫描", "btn.rescan": "重新扫描",
+    "btn.patch": "打补丁解锁", "btn.revertPatch": "撤销补丁",
+    "env.dataDir": "数据目录", "env.version": "程序版本", "env.asar": "app.asar",
+    "env.running": "Cherry Studio", "env.agentCount": "已有 Agent",
+    "env.notDetected": "（未识别）", "env.notFound": "（未找到）",
+    "env.isRunning": "正在运行", "env.notRunning": "未运行",
+    "env.asarLabel": "app.asar 路径", "env.asarMissingSuffix": "（未找到）",
+    "env.asarPh": "例如 C:\\app\\AI\\Cherry Studio\\resources\\app.asar",
+    "env.asarMissing": "没找到 app.asar，所以「运行时」是空的，也就无法新建 Agent。",
+    "env.asarMissing2": "Cherry Studio 装在自定义目录时（不是 Program Files），工具自动找不到它。请把它填到上面：",
+    "env.asarMissing3": "填一次就会记住，下次不用再填。",
+    "th.runtime": "运行时", "th.type": "类型", "th.status": "状态",
+    "th.avatar": "头像", "th.name": "名称", "th.model": "模型", "th.orderKey": "排序键",
+    "th.time": "时间", "th.reason": "原因", "th.files": "文件",
+    "pill.hidden": "被隐藏", "pill.available": "可用",
+    "agents.empty": "还没有 Agent。",
+    "backups.empty": "暂无备份。每次写操作前都会自动备份。",
+    "field.name": "名称", "field.avatar": "头像（一个 emoji）", "field.runtime": "运行时",
+    "field.model": "模型", "field.permission": "权限模式", "field.effort": "推理强度",
+    "field.instructions": "系统提示词", "field.skip": "跳过运行时校验（不推荐）",
+    "field.skipHint": "只在确实扫不到 app.asar 时使用。跳过校验意味着可能创建一个在当前版本里跑不起来的 Agent。",
+    "ph.name": "例如：周报助手", "ph.instructions": "这个 Agent 的角色、规则、输出格式……",
+    "effort.unset": "（不设置）",
+    "dlg.new": "新建 Agent", "dlg.edit": "编辑 %s",
+    "hint.running": "Cherry Studio 正在运行，保存会被拒绝",
+    "hint.immutable": "运行时创建后不可更改",
+    "run.unverified": "（未经验证）",
+    "run.unlocked": " — 已被本工具解锁",
+    "run.cannotList": "列不出运行时：没有找到 app.asar。请回到主界面，在「环境」一栏填入它的路径后重试。",
+    "run.cannotListErr": "列不出运行时：%s",
+    "alert.running": "<b>Cherry Studio 正在运行。</b>写操作（新建 / 修改 / 删除 / 打补丁）会被拒绝——它在内存里缓存了 Agent 列表，运行中写入会被覆盖。请从右下角托盘图标完全退出后，重新打开本工具。",
+    "alert.noAsar": "没有找到 <code>app.asar</code>。数据库相关功能仍可用，但运行时扫描与打补丁需要它。请手动指定路径。",
+    "alert.scanErr": "运行时扫描失败：%s",
+    "patch.active": "补丁<b>已生效</b>：Cherry Studio 的新建 Agent 界面现在会直接列出被隐藏的运行时。记得重启 Cherry Studio 生效。",
+    "patch.what": "运行时被 <code>%s</code> 里的一条过滤语句挡住了：",
+    "patch.how": "打补丁会把这几个字节换成等长的恒真表达式——<b>文件大小不变</b>，只备份被改的那几个字节，随时可撤销。",
+    "confirm.del": "确定要永久删除「%s」吗？\n\n删除前会自动备份，但这一步不可在界面上直接撤销。",
+    "confirm.patch": "确定要修改 app.asar 吗？\n\n这会改动 Cherry Studio 的程序文件（仅替换几个字节，大小不变）。\n随时可以撤销。",
+    "confirm.restore": "确定要用这个备份覆盖当前数据吗？\n\n当前状态会先被另存一份，所以这一步本身也可以再撤销。",
+    "toast.created": "已创建", "toast.saved": "已保存", "toast.deleted": "已删除",
+    "toast.duped": "已复制", "toast.patched": "补丁已应用，重启 Cherry Studio 生效",
+    "toast.reverted": "补丁已撤销", "toast.restored": "已恢复",
+    "toast.asarSaved": "已保存，运行时列表已刷新", "toast.rescanned": "已重新扫描",
+    "err.nameEmpty": "名称不能为空", "err.modelRequired": "必须选择一个模型",
+    "err.asarPathRequired": "请填写 app.asar 的完整路径",
+  },
+  en: {
+    "app.subtitle": "Unlock the agent runtimes Cherry Studio hides, and manage your agents.",
+    "card.env": "Environment", "card.runtimes": "Runtimes", "card.agents": "Agents", "card.backups": "Backups & undo",
+    "btn.refresh": "Refresh", "btn.newAgent": "New agent", "btn.cancel": "Cancel", "btn.save": "Save",
+    "btn.edit": "Edit", "btn.dup": "Duplicate", "btn.del": "Delete", "btn.restore": "Restore",
+    "btn.saveScan": "Save & scan", "btn.rescan": "Rescan",
+    "btn.patch": "Unlock with patch", "btn.revertPatch": "Revert patch",
+    "env.dataDir": "Data directory", "env.version": "App version", "env.asar": "app.asar",
+    "env.running": "Cherry Studio", "env.agentCount": "Existing agents",
+    "env.notDetected": "(not detected)", "env.notFound": "(not found)",
+    "env.isRunning": "running", "env.notRunning": "not running",
+    "env.asarLabel": "app.asar path", "env.asarMissingSuffix": "(not found)",
+    "env.asarPh": "e.g. C:\\app\\AI\\Cherry Studio\\resources\\app.asar",
+    "env.asarMissing": "app.asar was not found, so the runtime list is empty and no agent can be created.",
+    "env.asarMissing2": "When Cherry Studio is installed in a custom folder (not Program Files), the tool cannot find it automatically. Paste it above:",
+    "env.asarMissing3": "It is remembered after the first time — you only need to do this once.",
+    "th.runtime": "Runtime", "th.type": "Type", "th.status": "Status",
+    "th.avatar": "Avatar", "th.name": "Name", "th.model": "Model", "th.orderKey": "Order key",
+    "th.time": "Time", "th.reason": "Reason", "th.files": "Files",
+    "pill.hidden": "Hidden", "pill.available": "Available",
+    "agents.empty": "No agents yet.",
+    "backups.empty": "No backups yet. One is taken automatically before every write.",
+    "field.name": "Name", "field.avatar": "Avatar (a single emoji)", "field.runtime": "Runtime",
+    "field.model": "Model", "field.permission": "Permission mode", "field.effort": "Reasoning effort",
+    "field.instructions": "System prompt", "field.skip": "Skip runtime check (not recommended)",
+    "field.skipHint": "Only use this when app.asar really cannot be found. Skipping the check may create an agent that cannot run on this version.",
+    "ph.name": "e.g. Weekly report helper", "ph.instructions": "Role, rules and output format for this agent…",
+    "effort.unset": "(not set)",
+    "dlg.new": "New agent", "dlg.edit": "Edit %s",
+    "hint.running": "Cherry Studio is running — saving will be refused",
+    "hint.immutable": "The runtime cannot be changed after creation",
+    "run.unverified": " (unverified)",
+    "run.unlocked": " — unlocked by this tool",
+    "run.cannotList": "Cannot list runtimes: app.asar was not found. Go back to the Environment section, set its path, and retry.",
+    "run.cannotListErr": "Cannot list runtimes: %s",
+    "alert.running": "<b>Cherry Studio is running.</b> Writes (create / edit / delete / patch) will be refused — it caches the agent list in memory and would overwrite them. Quit it completely from the tray icon, then reopen this tool.",
+    "alert.noAsar": "<code>app.asar</code> was not found. Database features still work, but runtime scanning and patching need it. Please set its path manually.",
+    "alert.scanErr": "Runtime scan failed: %s",
+    "patch.active": "The patch is <b>active</b>: Cherry Studio's create dialog now lists the hidden runtime. Restart Cherry Studio for it to take effect.",
+    "patch.what": "The runtime is blocked by a filter inside <code>%s</code>:",
+    "patch.how": "The patch replaces those bytes with an equal-length always-true expression — <b>the file size does not change</b>, only the replaced bytes are backed up, and it can be reverted at any time.",
+    "confirm.del": "Permanently delete \"%s\"?\n\nA backup is taken first, but this step cannot be undone from the UI.",
+    "confirm.patch": "Modify app.asar?\n\nThis changes Cherry Studio's program files (only a few bytes, size unchanged).\nIt can be reverted at any time.",
+    "confirm.restore": "Overwrite the current data with this backup?\n\nThe current state is saved first, so this step can itself be undone.",
+    "toast.created": "Created", "toast.saved": "Saved", "toast.deleted": "Deleted",
+    "toast.duped": "Duplicated", "toast.patched": "Patch applied — restart Cherry Studio",
+    "toast.reverted": "Patch reverted", "toast.restored": "Restored",
+    "toast.asarSaved": "Saved — runtime list refreshed", "toast.rescanned": "Rescanned",
+    "err.nameEmpty": "Name must not be empty", "err.modelRequired": "Please choose a model",
+    "err.asarPathRequired": "Enter the full path to app.asar",
+  },
+};
+
+let LANG = localStorage.getItem("cam.lang") || "zh";
+
+function t(key, ...args) {
+  const d = DICT[LANG] || DICT.zh;
+  let s = d[key] ?? (DICT.zh[key] ?? key);
+  // 用函数式替换，避免参数里出现 $& 之类的替换模式被特殊解释
+  for (const a of args) s = s.replace("%s", () => String(a));
+  return s;
+}
+
+// 把带 data-i18n / data-i18n-ph 的元素一次性填好
+function applyStaticI18n() {
+  document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.getElementById("langZh").setAttribute("aria-pressed", String(LANG === "zh"));
+  document.getElementById("langEn").setAttribute("aria-pressed", String(LANG === "en"));
+  document.title = "Cherry Agent Manager";
+}
+
+// 切换语言：本地立即生效，同时告诉后端，让后端返回的文案（错误、状态判定）也切过去
+async function setLang(l) {
+  LANG = l;
+  localStorage.setItem("cam.lang", l);
+  applyStaticI18n();
+  try { await api("POST", "/api/config", { lang: l }); } catch (e) { /* 切语言失败不影响界面 */ }
+  await loadAll();
+}
+
+/* ============================ 基础工具 ============================ */
+
 const $ = (s, r = document) => r.querySelector(s);
 let STATE = null;
+let MODELS = [];
+let EDITING = null;
 
 const PERMS = {
   "default": ["default", "plan", "acceptEdits", "bypassPermissions"],
@@ -179,16 +327,27 @@ async function api(method, path, body) {
   return data;
 }
 
-const esc = s => (s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ============================ 渲染 ============================ */
+
+function renderAlerts(st) {
+  const out = [];
+  if (st.running) out.push(`<div class="notice warn">${t("alert.running")}</div>`);
+  if (!st.install.asarPath) out.push(`<div class="notice warn">${t("alert.noAsar")}</div>`);
+  if (st.scanError) out.push(`<div class="notice err">${esc(t("alert.scanErr", st.scanError))}</div>`);
+  (st.install.warnings || []).forEach(w => out.push(`<div class="notice warn">${esc(w)}</div>`));
+  $("#alerts").innerHTML = out.join("");
+}
 
 function renderEnv(st) {
   const i = st.install;
   const items = [
-    ["数据目录", i.dataDir],
-    ["程序版本", i.version || "（未识别）"],
-    ["app.asar", i.asarPath || "（未找到）"],
-    ["Cherry Studio", st.running ? "正在运行" : "未运行"],
-    ["已有 Agent", String(st.agentCount)],
+    [t("env.dataDir"), i.dataDir],
+    [t("env.version"), i.version || t("env.notDetected")],
+    [t("env.asar"), i.asarPath || t("env.notFound")],
+    [t("env.running"), st.running ? t("env.isRunning") : t("env.notRunning")],
+    [t("env.agentCount"), String(st.agentCount)],
   ];
   $("#env").innerHTML = items.map(([k, v]) =>
     `<div class="kv"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
@@ -203,67 +362,32 @@ function renderAsarBox(st) {
   $("#asarBox").innerHTML = `
     <div class="row" style="align-items:flex-end">
       <label style="flex:1;margin:0">
-        <span class="lb">app.asar 路径${missing ? "（未找到）" : ""}</span>
-        <input id="asarInput" value="${esc(p)}"
-          placeholder="例如 C:\\app\\AI\\Cherry Studio\\resources\\app.asar">
+        <span class="lb">${esc(t("env.asarLabel"))}${missing ? " " + esc(t("env.asarMissingSuffix")) : ""}</span>
+        <input id="asarInput" value="${esc(p)}" placeholder="${esc(t("env.asarPh"))}">
       </label>
-      <button onclick="saveAsar()">保存并扫描</button>
-      <button onclick="rescanAll()">重新扫描</button>
+      <button onclick="saveAsar()">${esc(t("btn.saveScan"))}</button>
+      <button onclick="rescanAll()">${esc(t("btn.rescan"))}</button>
     </div>
     ${missing ? `<div class="notice warn" style="margin-top:12px">
-      <b>没找到 app.asar，所以「运行时」是空的，也就无法新建 Agent。</b><br>
-      Cherry Studio 装在自定义目录时（不是 Program Files），工具自动找不到它。
-      请把它填到上面：<code>&lt;Cherry Studio 安装目录&gt;\\resources\\app.asar</code>。
-      填一次就会记住，下次不用再填。
+      <b>${esc(t("env.asarMissing"))}</b><br>
+      ${esc(t("env.asarMissing2"))} <code>&lt;Cherry Studio&gt;/resources/app.asar</code>。
+      ${esc(t("env.asarMissing3"))}
     </div>` : ""}`;
-}
-
-async function saveAsar() {
-  const v = $("#asarInput").value.trim();
-  if (!v) { toast("请填写 app.asar 的完整路径", "err"); return; }
-  try {
-    STATE = await api("POST", "/api/config", { asarPath: v });
-    toast("已保存，运行时列表已刷新", "ok");
-    await loadAll();
-  } catch (e) { toast(e.message, "err"); }
-}
-
-async function rescanAll() {
-  try { await api("POST", "/api/rescan", {}); toast("已重新扫描", "ok"); await loadAll(); }
-  catch (e) { toast(e.message, "err"); }
-}
-
-function renderAlerts(st) {
-  const out = [];
-  if (st.running) {
-    out.push(`<div class="notice warn"><b>Cherry Studio 正在运行。</b>
-      写操作（新建 / 修改 / 删除 / 打补丁）会被拒绝——它在内存里缓存了 Agent 列表，
-      运行中写入会被覆盖。请从右下角托盘图标完全退出后，重新打开本工具。</div>`);
-  }
-  if (!st.install.asarPath) {
-    out.push(`<div class="notice warn">没有找到 <code>app.asar</code>。
-      数据库相关功能仍可用，但运行时扫描与打补丁需要它。请手动指定路径。</div>`);
-  }
-  if (st.scanError) {
-    out.push(`<div class="notice err">运行时扫描失败：${esc(st.scanError)}</div>`);
-  }
-  (st.install.warnings || []).forEach(w => out.push(`<div class="notice warn">${esc(w)}</div>`));
-  $("#alerts").innerHTML = out.join("");
 }
 
 function renderRuntimes(st) {
   const checks = st.runtimeChecks || [];
   if (!checks.length) {
-    $("#runtimes").innerHTML = `<div class="muted">未能识别到任何运行时。</div>`;
+    $("#runtimes").innerHTML = `<div class="muted">${esc(t("run.cannotList"))}</div>`;
   } else {
     $("#runtimes").innerHTML = `<table><thead><tr>
-        <th>运行时</th><th>类型</th><th>状态</th></tr></thead><tbody>` +
+        <th>${esc(t("th.runtime"))}</th><th>${esc(t("th.type"))}</th><th>${esc(t("th.status"))}</th></tr></thead><tbody>` +
       checks.map(c => `<tr>
         <td>${esc(c.label)}</td>
         <td class="mono">${esc(c.type)}</td>
         <td>${c.hidden
-          ? `<span class="pill bad">被隐藏</span> <span class="muted">${esc(c.verdict)}</span>`
-          : `<span class="pill ok">可用</span> <span class="muted">${esc(c.verdict)}</span>`}</td>
+          ? `<span class="pill bad">${esc(t("pill.hidden"))}</span> <span class="muted">${esc(c.verdict)}</span>`
+          : `<span class="pill ok">${esc(t("pill.available"))}</span> <span class="muted">${esc(c.verdict)}</span>`}</td>
       </tr>`).join("") + `</tbody></table>`;
   }
   renderPatch(st);
@@ -275,30 +399,28 @@ function renderPatch(st) {
   const disabled = st.running ? "disabled" : "";
 
   if (p.applied) {
-    box.innerHTML = `<div class="notice ok">补丁<b>已生效</b>：
-      Cherry Studio 的新建 Agent 界面现在会直接列出被隐藏的运行时。
-      记得重启 Cherry Studio 生效。</div>
-      <div class="row end"><button class="danger" ${disabled} onclick="revertPatch()">撤销补丁</button></div>`;
+    box.innerHTML = `<div class="notice ok">${t("patch.active")}</div>
+      <div class="row end"><button class="danger" ${disabled} onclick="revertPatch()">${esc(t("btn.revertPatch"))}</button></div>`;
     return;
   }
   if (!p.supported) {
-    box.innerHTML = `<div class="muted">${esc(p.reason || "当前版本无需打补丁。")}</div>`;
+    box.innerHTML = `<div class="muted">${esc(p.reason || "")}</div>`;
     return;
   }
   box.innerHTML = `
     <div class="notice warn">
-      运行时被 <code>${esc(p.targetFile || "")}</code> 里的一条过滤语句挡住了：
+      ${t("patch.what", esc(p.targetFile || ""))}
       <div class="mono" style="margin-top:8px">${esc(p.statement || "")}</div>
-      <div style="margin-top:8px">打补丁会把这几个字节换成等长的恒真表达式——
-      <b>文件大小不变</b>，只备份被改的那几个字节，随时可撤销。</div>
+      <div style="margin-top:8px">${t("patch.how")}</div>
     </div>
-    <div class="row end"><button class="primary" ${disabled} onclick="applyPatch()">打补丁解锁</button></div>`;
+    <div class="row end"><button class="primary" ${disabled} onclick="applyPatch()">${esc(t("btn.patch"))}</button></div>`;
 }
 
 function renderAgents(list) {
-  if (!list.length) { $("#agents").innerHTML = `<div class="muted">还没有 Agent。</div>`; return; }
+  if (!list.length) { $("#agents").innerHTML = `<div class="muted">${esc(t("agents.empty"))}</div>`; return; }
   $("#agents").innerHTML = `<table><thead><tr>
-      <th>头像</th><th>名称</th><th>运行时</th><th>模型</th><th>排序键</th><th></th>
+      <th>${esc(t("th.avatar"))}</th><th>${esc(t("th.name"))}</th><th>${esc(t("th.runtime"))}</th>
+      <th>${esc(t("th.model"))}</th><th>${esc(t("th.orderKey"))}</th><th></th>
     </tr></thead><tbody>` + list.map(a => `<tr>
       <td>${esc(a.configuration?.avatar || "")}</td>
       <td>${esc(a.name)}</td>
@@ -306,22 +428,23 @@ function renderAgents(list) {
       <td class="mono">${esc(a.model)}</td>
       <td class="mono">${esc(a.orderKey)}</td>
       <td class="row end">
-        <button onclick='openEdit(${JSON.stringify(a.id)})'>编辑</button>
-        <button onclick='dupAgent(${JSON.stringify(a.id)})'>复制</button>
-        <button class="danger" onclick='delAgent(${JSON.stringify(a.id)}, ${JSON.stringify(a.name)})'>删除</button>
+        <button class="ghost" onclick='openEdit(${JSON.stringify(a.id)})'>${esc(t("btn.edit"))}</button>
+        <button class="ghost" onclick='dupAgent(${JSON.stringify(a.id)})'>${esc(t("btn.dup"))}</button>
+        <button class="ghost danger" onclick='delAgent(${JSON.stringify(a.id)}, ${JSON.stringify(a.name)})'>${esc(t("btn.del"))}</button>
       </td>
     </tr>`).join("") + `</tbody></table>`;
 }
 
 function renderBackups(list) {
-  if (!list.length) { $("#backups").innerHTML = `<div class="muted">暂无备份。每次写操作前都会自动备份。</div>`; return; }
+  if (!list.length) { $("#backups").innerHTML = `<div class="muted">${esc(t("backups.empty"))}</div>`; return; }
   $("#backups").innerHTML = `<table><thead><tr>
-      <th>时间</th><th>原因</th><th>文件</th><th></th></tr></thead><tbody>` +
+      <th>${esc(t("th.time"))}</th><th>${esc(t("th.reason"))}</th><th>${esc(t("th.files"))}</th><th></th>
+    </tr></thead><tbody>` +
     list.map(b => `<tr>
       <td class="mono">${esc(new Date(b.createdAt).toLocaleString())}</td>
       <td>${esc(b.reason)}</td>
       <td class="mono">${(b.entries || []).map(e => esc(e.stored)).join(", ")}</td>
-      <td class="row end"><button onclick='restore(${JSON.stringify(b.id)})'>恢复此备份</button></td>
+      <td class="row end"><button class="ghost" onclick='restore(${JSON.stringify(b.id)})'>${esc(t("btn.restore"))}</button></td>
     </tr>`).join("") + `</tbody></table>`;
 }
 
@@ -337,18 +460,15 @@ async function loadAll() {
   } catch (e) { toast(e.message, "err"); }
 }
 
-// ---------- 表单 ----------
-
-let MODELS = [];
-let EDITING = null;
+/* ============================ 表单 ============================ */
 
 async function openCreate() {
   EDITING = null;
-  $("#dlgTitle").textContent = "新建 Agent";
+  $("#dlgTitle").textContent = t("dlg.new");
   const f = $("#agentForm");
   f.reset();
   await prepareForm(null);
-  $("#dlgHint").textContent = STATE?.running ? "Cherry Studio 正在运行，保存会被拒绝" : "";
+  $("#dlgHint").textContent = STATE?.running ? t("hint.running") : "";
   $("#dlg").showModal();
 }
 
@@ -357,7 +477,7 @@ async function openEdit(id) {
   const a = agents.find(x => x.id === id);
   if (!a) return;
   EDITING = a;
-  $("#dlgTitle").textContent = "编辑 " + a.name;
+  $("#dlgTitle").textContent = t("dlg.edit", a.name);
   const f = $("#agentForm");
   f.name.value = a.name;
   f.avatar.value = a.configuration?.avatar || "";
@@ -365,7 +485,7 @@ async function openEdit(id) {
   f.permissionMode.value = a.configuration?.permission_mode || "";
   f.reasoningEffort.value = a.configuration?.reasoning_effort || "";
   await prepareForm(a);
-  $("#dlgHint").textContent = "运行时创建后不可更改";
+  $("#dlgHint").textContent = t("hint.immutable");
   $("#dlg").showModal();
 }
 
@@ -377,22 +497,21 @@ async function prepareForm(a) {
 
   const typeSel = $("#typeSel");
   if (a) {
-    // 编辑时运行时不可改，只展示当前值
     typeSel.innerHTML = `<option value="${esc(a.type)}">${esc(a.type)}</option>`;
   } else if (blocked) {
     // 拿不到运行时列表时，退化成"未经验证"的单项，并要求显式勾选跳过校验。
     // 关键是：绝不把一个空的下拉框丢给用户，让他不知道为什么选不了。
-    typeSel.innerHTML = `<option value="dsh">dsh（未经验证）</option>`;
+    typeSel.innerHTML = `<option value="dsh">dsh${esc(t("run.unverified"))}</option>`;
   } else {
     typeSel.innerHTML = runtimes.map(r =>
-      `<option value="${esc(r.type)}">${esc(r.label)}（${esc(r.type)}）${r.hidden ? " — 已被本工具解锁" : ""}</option>`
+      `<option value="${esc(r.type)}">${esc(r.label)}（${esc(r.type)}）${r.hidden ? esc(t("run.unlocked")) : ""}</option>`
     ).join("");
   }
   typeSel.disabled = !!a;
 
   const modelSel = $("#modelSel");
   modelSel.innerHTML = MODELS.map(m =>
-    `<option value="${esc(m.id)}">${esc(m.id)}${m.enabled ? "" : "（已停用）"}</option>`).join("");
+    `<option value="${esc(m.id)}">${esc(m.id)}${m.enabled ? "" : " —"}</option>`).join("");
   if (a) modelSel.value = a.model;
 
   syncPerms(a ? a.type : typeSel.value);
@@ -401,9 +520,9 @@ async function prepareForm(a) {
   const errBox = $("#runtimeError");
   errBox.style.display = showBlock ? "block" : "none";
   if (showBlock) {
-    errBox.innerHTML = STATE?.scanError
-      ? `列不出运行时：${esc(STATE.scanError)}`
-      : `列不出运行时：没有找到 app.asar。请回到主界面，在「环境」一栏填入它的路径后重试。`;
+    errBox.textContent = STATE?.scanError
+      ? t("run.cannotListErr", STATE.scanError)
+      : t("run.cannotList");
   }
   $("#skipWrap").style.display = showBlock ? "block" : "none";
   $("#skipCheck").checked = false;
@@ -443,45 +562,65 @@ $("#agentForm").addEventListener("submit", async e => {
     reasoningEffort: f.reasoningEffort.value,
     skipRuntimeCheck: $("#skipCheck").checked,
   };
-  if (!payload.name) { toast("名称不能为空", "err"); return; }
-  if (!payload.model) { toast("必须选择一个模型", "err"); return; }
+  if (!payload.name) { toast(t("err.nameEmpty"), "err"); return; }
+  if (!payload.model) { toast(t("err.modelRequired"), "err"); return; }
   try {
     if (EDITING) await api("PUT", "/api/agents/" + EDITING.id, payload);
     else await api("POST", "/api/agents", payload);
     $("#dlg").close();
-    toast(EDITING ? "已保存" : "已创建", "ok");
+    toast(EDITING ? t("toast.saved") : t("toast.created"), "ok");
     loadAll();
   } catch (err) { toast(err.message, "err"); }
 });
 
+/* ============================ 操作 ============================ */
+
 async function dupAgent(id) {
-  try { await api("POST", "/api/agents/" + id + "/duplicate", {}); toast("已复制", "ok"); loadAll(); }
+  try { await api("POST", "/api/agents/" + id + "/duplicate", {}); toast(t("toast.duped"), "ok"); loadAll(); }
   catch (e) { toast(e.message, "err"); }
 }
 
 async function delAgent(id, name) {
-  if (!confirm(`确定要永久删除「${name}」吗？\n\n删除前会自动备份，但这一步不可在界面上直接撤销。`)) return;
-  try { await api("DELETE", "/api/agents/" + id); toast("已删除", "ok"); loadAll(); }
+  if (!confirm(t("confirm.del", name))) return;
+  try { await api("DELETE", "/api/agents/" + id); toast(t("toast.deleted"), "ok"); loadAll(); }
   catch (e) { toast(e.message, "err"); }
 }
 
 async function applyPatch() {
-  if (!confirm("确定要修改 app.asar 吗？\n\n这会改动 Cherry Studio 的程序文件（仅替换几个字节，大小不变）。\n随时可以撤销。")) return;
-  try { await api("POST", "/api/patch/apply", {}); toast("补丁已应用，重启 Cherry Studio 生效", "ok"); loadAll(); }
+  if (!confirm(t("confirm.patch"))) return;
+  try { await api("POST", "/api/patch/apply", {}); toast(t("toast.patched"), "ok"); loadAll(); }
   catch (e) { toast(e.message, "err"); }
 }
 
 async function revertPatch() {
-  try { await api("POST", "/api/patch/revert", {}); toast("补丁已撤销", "ok"); loadAll(); }
+  try { await api("POST", "/api/patch/revert", {}); toast(t("toast.reverted"), "ok"); loadAll(); }
   catch (e) { toast(e.message, "err"); }
 }
 
 async function restore(id) {
-  if (!confirm("确定要用这个备份覆盖当前数据吗？\n\n当前状态会先被另存一份，所以这一步本身也可以再撤销。")) return;
-  try { await api("POST", "/api/backups/" + id + "/restore", {}); toast("已恢复", "ok"); loadAll(); }
+  if (!confirm(t("confirm.restore"))) return;
+  try { await api("POST", "/api/backups/" + id + "/restore", {}); toast(t("toast.restored"), "ok"); loadAll(); }
   catch (e) { toast(e.message, "err"); }
 }
 
+async function saveAsar() {
+  const v = $("#asarInput").value.trim();
+  if (!v) { toast(t("err.asarPathRequired"), "err"); return; }
+  try {
+    STATE = await api("POST", "/api/config", { asarPath: v });
+    toast(t("toast.asarSaved"), "ok");
+    await loadAll();
+  } catch (e) { toast(e.message, "err"); }
+}
+
+async function rescanAll() {
+  try { await api("POST", "/api/rescan", {}); toast(t("toast.rescanned"), "ok"); await loadAll(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+/* ============================ 启动 ============================ */
+
+applyStaticI18n();
 loadAll();
 </script>
 </body>

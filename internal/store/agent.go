@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 // Agent 是 agent 表里的一行。Configuration 用 map 保存，
@@ -75,7 +77,7 @@ func (d *DB) ListAgents(includeDeleted bool) ([]Agent, error) {
 
 	rows, err := d.sql.Query(q)
 	if err != nil {
-		return nil, fmt.Errorf("读取 Agent 列表失败: %w", err)
+		return nil, i18n.Wrap("err.readAgents", err)
 	}
 	defer rows.Close()
 	return scanAgents(rows)
@@ -94,7 +96,7 @@ func (d *DB) GetAgent(id string) (*Agent, error) {
 		return nil, err
 	}
 	if len(list) == 0 {
-		return nil, fmt.Errorf("找不到 Agent: %s", id)
+		return nil, i18n.E("err.agentNotFound", id)
 	}
 	return &list[0], nil
 }
@@ -128,7 +130,7 @@ func encodeConfig(cfg map[string]any) (string, error) {
 	}
 	raw, err := json.Marshal(cfg)
 	if err != nil {
-		return "", fmt.Errorf("序列化 configuration 失败: %w", err)
+		return "", i18n.Wrap("err.encodeConfig", err)
 	}
 	return string(raw), nil
 }
@@ -137,20 +139,20 @@ func encodeConfig(cfg map[string]any) (string, error) {
 // 保证追加在末尾且与 App 后续新建的 Agent 不冲突。
 func (d *DB) CreateAgent(in CreateInput) (*Agent, error) {
 	if strings.TrimSpace(in.Name) == "" {
-		return nil, fmt.Errorf("Agent 名字不能为空")
+		return nil, i18n.E("err.nameEmpty")
 	}
 	if in.Type == "" {
-		return nil, fmt.Errorf("必须指定运行时类型")
+		return nil, i18n.E("err.typeRequired")
 	}
 	if in.Model == "" {
-		return nil, fmt.Errorf("必须指定模型")
+		return nil, i18n.E("err.modelRequired")
 	}
 	ok, err := d.ModelExists(in.Model)
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, fmt.Errorf("模型不存在：%s（必须从 user_model 里选）", in.Model)
+		return nil, i18n.E("err.modelGone", in.Model)
 	}
 
 	cfg := map[string]any{}
@@ -174,7 +176,7 @@ func (d *DB) CreateAgent(in CreateInput) (*Agent, error) {
 	}
 	orderKey, err := NextOrderKey(maxKey)
 	if err != nil {
-		return nil, fmt.Errorf("计算排序键失败: %w", err)
+		return nil, i18n.Wrap("err.orderKey", err)
 	}
 
 	id, err := newUUIDv4()
@@ -193,7 +195,7 @@ func (d *DB) CreateAgent(in CreateInput) (*Agent, error) {
 		cfgRaw, orderKey, now, now,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("写入 Agent 失败: %w", err)
+		return nil, i18n.Wrap("err.createAgent", err)
 	}
 
 	return d.GetAgent(id)
@@ -213,14 +215,14 @@ func (d *DB) UpdateAgent(id string, in UpdateInput) (*Agent, error) {
 			return nil, err
 		}
 		if !ok {
-			return nil, fmt.Errorf("模型不存在：%s", *in.Model)
+			return nil, i18n.E("err.modelGone", *in.Model)
 		}
 	}
 
 	next := *cur
 	if in.Name != nil {
 		if strings.TrimSpace(*in.Name) == "" {
-			return nil, fmt.Errorf("Agent 名字不能为空")
+			return nil, i18n.E("err.nameEmpty")
 		}
 		next.Name = *in.Name
 	}
@@ -260,7 +262,7 @@ func (d *DB) UpdateAgent(id string, in UpdateInput) (*Agent, error) {
 		cfgRaw, time.Now().UnixMilli(), id,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("更新 Agent 失败: %w", err)
+		return nil, i18n.Wrap("err.updateAgent", err)
 	}
 	return d.GetAgent(id)
 }
@@ -274,7 +276,7 @@ func (d *DB) SetDeleted(id string, deleted bool) error {
 	res, err := d.sql.Exec(`UPDATE agent SET deleted_at = ?, updated_at = ? WHERE id = ?`,
 		ts, time.Now().UnixMilli(), id)
 	if err != nil {
-		return fmt.Errorf("更新删除状态失败: %w", err)
+		return i18n.Wrap("err.setDeleted", err)
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
@@ -287,7 +289,7 @@ func (d *DB) SetDeleted(id string, deleted bool) error {
 func (d *DB) DeleteAgent(id string) error {
 	res, err := d.sql.Exec(`DELETE FROM agent WHERE id = ?`, id)
 	if err != nil {
-		return fmt.Errorf("删除 Agent 失败: %w", err)
+		return i18n.Wrap("err.deleteAgent", err)
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
@@ -341,7 +343,7 @@ func (d *DB) DuplicateAgent(id, newName string) (*Agent, error) {
 		cfgRaw, orderKey, now, now,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("复制 Agent 失败: %w", err)
+		return nil, i18n.Wrap("err.duplicateAgent", err)
 	}
 	return d.GetAgent(newID)
 }
@@ -357,7 +359,7 @@ func nullable(s string) any {
 func newUUIDv4() (string, error) {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		return "", fmt.Errorf("生成 UUID 失败: %w", err)
+		return "", i18n.Wrap("err.uuidFailed", err)
 	}
 	b[6] = (b[6] & 0x0f) | 0x40 // version 4
 	b[8] = (b[8] & 0x3f) | 0x80 // variant RFC 4122

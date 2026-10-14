@@ -15,7 +15,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,6 +24,8 @@ import (
 
 	"github.com/cherry-tools/cherry-agent-manager/internal/asar"
 	"github.com/cherry-tools/cherry-agent-manager/internal/cherry"
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 // markerToken 是替换文本里用来表明「此处由本工具解锁」的标记。
@@ -75,35 +76,35 @@ func RecordsDir(dataDir string) string {
 }
 
 // Inspect 判断当前 asar 是否支持打补丁、以及是否已经打过。
-func Inspect(asarPath string) (State, error) {
+func Inspect(asarPath string, lang i18n.Lang) (State, error) {
 	st := State{AsarPath: asarPath}
 	if asarPath == "" {
-		st.Reason = "没有指定 app.asar 路径"
+		st.Reason = i18n.T(lang, "patch.reason.noAsar")
 		return st, nil
 	}
 
 	a, err := asar.Open(asarPath)
 	if err != nil {
-		st.Reason = fmt.Sprintf("无法打开 app.asar: %v", err)
+		st.Reason = i18n.T(lang, "err.withDetail", i18n.T(lang, "patch.reason.openFailed"), err)
 		return st, nil
 	}
 	defer a.Close()
 
 	res, err := cherry.ScanRuntimes(a)
 	if err != nil {
-		st.Reason = fmt.Sprintf("扫描失败: %v", err)
+		st.Reason = i18n.T(lang, "err.withDetail", i18n.T(lang, "patch.reason.scanFailed"), err)
 		return st, nil
 	}
 	st.TargetFile = res.Markers["RUNTIMES"]
 	st.Statement = res.CreateFilterStmt
 
 	if len(res.HiddenRuntimes()) == 0 && st.TargetFile == "" {
-		st.Reason = "这个版本没有隐藏任何运行时，无需打补丁"
+		st.Reason = i18n.T(lang, "patch.reason.noHidden")
 		return st, nil
 	}
 
 	if st.Statement == "" || st.TargetFile == "" {
-		st.Reason = "没有找到新建界面的过滤语句，可能这个版本改了实现方式"
+		st.Reason = i18n.T(lang, "patch.reason.noStatement")
 		return st, nil
 	}
 
@@ -114,7 +115,7 @@ func Inspect(asarPath string) (State, error) {
 		// 靠替换文本里的标记来区分。
 		st.Applied = strings.Contains(st.Statement, markerToken)
 		if !st.Applied {
-			st.Reason = "当前版本没有隐藏任何运行时，无需打补丁"
+			st.Reason = i18n.T(lang, "patch.reason.noHidden")
 			st.Supported = false
 		}
 		return st, nil
@@ -126,13 +127,13 @@ func Inspect(asarPath string) (State, error) {
 }
 
 // Apply 打补丁。返回打完之后的 State。
-func Apply(asarPath, dataDir string) (State, error) {
-	st, err := Inspect(asarPath)
+func Apply(asarPath, dataDir string, lang i18n.Lang) (State, error) {
+	st, err := Inspect(asarPath, lang)
 	if err != nil {
 		return st, err
 	}
 	if !st.Supported {
-		return st, fmt.Errorf("无法打补丁：%s", st.Reason)
+		return st, i18n.E("patch.err.notSupported", st.Reason)
 	}
 	if st.Applied {
 		return st, nil // 幂等
@@ -145,7 +146,7 @@ func Apply(asarPath, dataDir string) (State, error) {
 
 	stmtStart := strings.Index(string(content), st.Statement)
 	if stmtStart < 0 {
-		return st, fmt.Errorf("在 %s 里找不到过滤语句（扫描与读取结果不一致）", st.TargetFile)
+		return st, i18n.E("patch.err.stmtMissing", st.TargetFile)
 	}
 
 	type edit struct {
@@ -161,17 +162,17 @@ func Apply(asarPath, dataDir string) (State, error) {
 		original := content[loc[0]:loc[1]]
 		patched := sameLengthTrue(len(original))
 		if len(patched) != len(original) {
-			return st, fmt.Errorf("内部错误：替换文本长度不一致（%d vs %d）", len(patched), len(original))
+			return st, i18n.E("patch.err.lenMismatch", len(patched), len(original))
 		}
 		edits = append(edits, edit{start: loc[0], end: loc[1], original: original, patched: []byte(patched)})
 	}
 	if len(edits) == 0 {
-		return st, fmt.Errorf("没有找到可替换的过滤条件")
+		return st, i18n.E("patch.err.noPredicate")
 	}
 
 	f, err := os.OpenFile(asarPath, os.O_RDWR, 0o644)
 	if err != nil {
-		return st, fmt.Errorf("以读写方式打开 app.asar 失败（Cherry Studio 是否还在运行？）: %w", err)
+		return st, i18n.Wrap("patch.err.openRW", err)
 	}
 	defer f.Close()
 
@@ -186,7 +187,7 @@ func Apply(asarPath, dataDir string) (State, error) {
 	for _, e := range edits {
 		abs := absBase + int64(e.start)
 		if _, err := f.WriteAt(e.patched, abs); err != nil {
-			return st, fmt.Errorf("写入补丁失败: %w", err)
+			return st, i18n.Wrap("patch.err.writeFailed", err)
 		}
 		patchedParts = append(patchedParts, string(e.patched))
 		if rec.AbsOffset == 0 {
@@ -201,18 +202,18 @@ func Apply(asarPath, dataDir string) (State, error) {
 	}
 	rec.Patched = strings.Join(patchedParts, "|")
 	if err := f.Sync(); err != nil {
-		return st, fmt.Errorf("落盘失败: %w", err)
+		return st, i18n.Wrap("patch.err.syncFailed", err)
 	}
 
 	if err := saveRecord(dataDir, rec); err != nil {
 		// 补丁已经打上了，但记录没存下来——撤销会受影响，必须让用户知道
-		return st, fmt.Errorf("补丁已应用，但撤销记录保存失败（请手动备份 app.asar）: %w", err)
+		return st, i18n.Wrap("patch.err.recordFailed", err)
 	}
 
 	// 复查：重新扫描应当不再有隐藏运行时
-	after, err := Inspect(asarPath)
+	after, err := Inspect(asarPath, lang)
 	if err == nil && !after.Applied {
-		return st, fmt.Errorf("补丁写入后复查失败，app.asar 可能未生效")
+		return st, i18n.E("patch.err.verifyFailed")
 	}
 	st.Applied = true
 	st.PatchID = rec.ID
@@ -233,17 +234,17 @@ func Revert(asarPath, dataDir string) error {
 		}
 	}
 	if rec == nil {
-		return fmt.Errorf("没有找到针对该 app.asar 的补丁记录")
+		return i18n.E("patch.err.noRecord")
 	}
 
 	original, err := hex.DecodeString(rec.OriginalHex)
 	if err != nil {
-		return fmt.Errorf("补丁记录损坏: %w", err)
+		return i18n.Wrap("patch.err.badRecord", err)
 	}
 
 	f, err := os.OpenFile(asarPath, os.O_RDWR, 0o644)
 	if err != nil {
-		return fmt.Errorf("打开 app.asar 失败（Cherry Studio 是否还在运行？）: %w", err)
+		return i18n.Wrap("patch.err.openRW", err)
 	}
 	defer f.Close()
 
@@ -253,12 +254,11 @@ func Revert(asarPath, dataDir string) error {
 	_, errBefore := f.ReadAt(before, rec.AbsOffset-int64(rec.BeforeLen))
 	_, errAfter := f.ReadAt(after, rec.AbsOffset+int64(len(original)))
 	if errBefore != nil || errAfter != nil || contextHash(before, after) != rec.ContextHash {
-		return fmt.Errorf("app.asar 在打补丁之后发生了变化（可能升级过 Cherry Studio），" +
-			"为避免改坏文件，已拒绝自动撤销。重装 Cherry Studio 即可回到干净状态")
+		return i18n.E("patch.err.changed")
 	}
 
 	if _, err := f.WriteAt(original, rec.AbsOffset); err != nil {
-		return fmt.Errorf("撤销写入失败: %w", err)
+		return i18n.Wrap("patch.err.writeFailed", err)
 	}
 	if err := f.Sync(); err != nil {
 		return err
@@ -293,10 +293,10 @@ func readTargetFile(asarPath, target string) ([]byte, int64, error) {
 
 	entry, ok := a.Stat(target)
 	if !ok {
-		return nil, 0, fmt.Errorf("asar 中找不到 %s", target)
+		return nil, 0, i18n.E("err.asarEntryMissing", target)
 	}
 	if entry.Unpacked {
-		return nil, 0, fmt.Errorf("%s 是 unpacked 文件，当前不支持对其打补丁", target)
+		return nil, 0, i18n.E("err.asarUnpackedPatch", target)
 	}
 	off, err := parseInt64(entry.Offset)
 	if err != nil {
@@ -313,7 +313,7 @@ func parseInt64(s string) (int64, error) {
 	var n int64
 	for _, r := range s {
 		if r < '0' || r > '9' {
-			return 0, fmt.Errorf("非法偏移量: %q", s)
+			return 0, i18n.E("err.badOffsetValue", s)
 		}
 		n = n*10 + int64(r-'0')
 	}

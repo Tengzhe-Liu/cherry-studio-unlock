@@ -2,9 +2,10 @@ package cherry
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/cherry-tools/cherry-agent-manager/internal/i18n"
 )
 
 // configFileName 是工具自己的配置文件，放在 Cherry Studio 数据目录下。
@@ -19,6 +20,8 @@ type Config struct {
 	// 用户如果把程序装在自定义目录（例如 C:\app\AI\Cherry Studio），
 	// 仅靠常见安装位置是找不到的——那正好是最需要写数据的场景。
 	AsarPath string `json:"asarPath,omitempty"`
+	// Lang 是上次选择的界面语言，下次启动沿用。
+	Lang string `json:"lang,omitempty"`
 }
 
 // ConfigPath 返回配置文件的完整路径。
@@ -49,7 +52,7 @@ func SaveConfig(dataDir string, c *Config) error {
 	path := ConfigPath(dataDir)
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, raw, 0o644); err != nil {
-		return fmt.Errorf("写入配置失败: %w", err)
+		return i18n.Wrap("err.writeConfig", err)
 	}
 	return os.Rename(tmp, path)
 }
