@@ -1,3 +1,5 @@
+*本项目告吹，官方从代码层面删除了dsh*
+
 # Cherry Studio Unlock
 
 **解锁 Cherry Studio 隐藏的 Agent 运行时，并管理你已有的 Agent。**
